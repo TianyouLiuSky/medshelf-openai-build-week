@@ -8,8 +8,10 @@ import type {
 
 interface LeafletUploadPanelProps {
   uploads: LeafletUpload[];
+  activeExtractionId: number | null;
   isLoading: boolean;
   isUploading: boolean;
+  onExtract: (upload: LeafletUpload) => Promise<void>;
   onUpload: (file: File) => Promise<void>;
 }
 
@@ -55,8 +57,10 @@ function formatDateTime(value: string): string {
 
 function LeafletUploadPanel({
   uploads,
+  activeExtractionId,
   isLoading,
   isUploading,
+  onExtract,
   onUpload
 }: LeafletUploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -135,9 +139,25 @@ function LeafletUploadPanel({
                   {formatDateTime(upload.created_at)}
                 </span>
               </div>
-              <StatusBadge tone={statusTones[upload.status]}>
-                {statusLabels[upload.status]}
-              </StatusBadge>
+              <div className="leaflet-row-actions">
+                <StatusBadge tone={statusTones[upload.status]}>
+                  {statusLabels[upload.status]}
+                </StatusBadge>
+                {(upload.status === "uploaded" || upload.status === "failed") && (
+                  <button
+                    className="secondary-button compact-button"
+                    type="button"
+                    disabled={activeExtractionId !== null}
+                    onClick={() => void onExtract(upload)}
+                  >
+                    {activeExtractionId === upload.id
+                      ? "Extracting"
+                      : upload.status === "failed"
+                        ? "Retry"
+                        : "Extract"}
+                  </button>
+                )}
+              </div>
             </article>
           ))}
         </div>

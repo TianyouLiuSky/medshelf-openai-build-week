@@ -1,13 +1,23 @@
+import json
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from ..repository import (
+    complete_leaflet_extraction,
+    create_leaflet_extraction_attempt,
     create_leaflet_upload,
     get_medication,
+    get_leaflet_upload,
     list_leaflet_uploads_for_medication,
 )
-from ..schemas import LeafletUploadRead
+from ..schemas import LeafletExtractionRead, LeafletUploadRead
+from ..services.ai_extraction import (
+    ExtractionProviderError,
+    SUPPORTED_PROVIDERS,
+    model_to_dict,
+    run_extraction_provider,
+)
 from ..services.leaflet_storage import LeafletStorageError, store_leaflet_file
 
 router = APIRouter(tags=["leaflets"])
@@ -76,3 +86,71 @@ async def upload_leaflet(
         raise HTTPException(status_code=404, detail="Medication not found.")
 
     return upload
+
+
+@router.post(
+    "/api/leaflets/{leaflet_id}/extract",
+    response_model=LeafletExtractionRead,
+)
+def extract_leaflet(
+    request: Request, leaflet_id: int, provider: str = ""
+) -> dict:
+    database_url = database_url_from_request(request)
+    upload = get_leaflet_upload(database_url, leaflet_id)
+    if upload is None:
+        raise HTTPException(status_code=404, detail="Leaflet upload not found.")
+
+    settings = request.app.state.settings
+    selected_provider = (provider or settings.extraction_provider).strip().lower()
+    if selected_provider not in SUPPORTED_PROVIDERS:
+        supported = ", ".join(sorted(SUPPORTED_PROVIDERS))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported extraction provider. Use one of: {supported}.",
+        )
+
+    attempt = create_leaflet_extraction_attempt(
+        database_url, upload, selected_provider
+    )
+    try:
+        extraction = run_extraction_provider(upload, settings, selected_provider)
+    except ExtractionProviderError as exc:
+        failed = complete_leaflet_extraction(
+            database_url,
+            attempt["id"],
+            status="failed",
+            source_text="",
+            raw_model_output=json.dumps(
+                {
+                    "provider": selected_provider,
+                    "status": "failed",
+                    "error": str(exc),
+                },
+                ensure_ascii=False,
+            ),
+            parsed_output=None,
+            error_message=str(exc),
+        )
+        if failed is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Leaflet extraction attempt could not be updated.",
+            )
+        return failed
+
+    completed = complete_leaflet_extraction(
+        database_url,
+        attempt["id"],
+        status="needs_review",
+        source_text=extraction.source_text,
+        raw_model_output=extraction.raw_model_output,
+        parsed_output=model_to_dict(extraction.parsed_output),
+        error_message="",
+    )
+    if completed is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Leaflet extraction attempt could not be updated.",
+        )
+
+    return completed

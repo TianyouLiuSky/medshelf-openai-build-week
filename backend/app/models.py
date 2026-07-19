@@ -78,6 +78,25 @@ CREATE TABLE IF NOT EXISTS leaflet_uploads (
 );
 """
 
+LEAFLET_EXTRACTIONS_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS leaflet_extractions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    leaflet_upload_id INTEGER NOT NULL,
+    medication_id INTEGER NOT NULL,
+    provider TEXT NOT NULL,
+    status TEXT NOT NULL,
+    source_text TEXT NOT NULL DEFAULT '',
+    raw_model_output TEXT NOT NULL DEFAULT '',
+    parsed_output TEXT,
+    error_message TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (status IN ('extracting', 'needs_review', 'failed', 'approved')),
+    FOREIGN KEY (leaflet_upload_id) REFERENCES leaflet_uploads(id) ON DELETE CASCADE,
+    FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
+);
+"""
+
 MEDICATION_COLUMNS = (
     "id",
     "name",
@@ -90,6 +109,20 @@ MEDICATION_COLUMNS = (
     "dose_unit",
     "low_stock_threshold",
     "notes",
+    "created_at",
+    "updated_at",
+)
+
+LEAFLET_EXTRACTION_COLUMNS = (
+    "id",
+    "leaflet_upload_id",
+    "medication_id",
+    "provider",
+    "status",
+    "source_text",
+    "raw_model_output",
+    "parsed_output",
+    "error_message",
     "created_at",
     "updated_at",
 )

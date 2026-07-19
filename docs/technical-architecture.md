@@ -9,8 +9,10 @@ flowchart TD
     UI["React PWA"] --> API["FastAPI backend"]
     API --> DB["SQLite database"]
     API --> FILES["Local upload storage"]
-    API --> OPENAI["OpenAI Responses API"]
-    OPENAI --> API
+    API --> EXTRACT["Extraction provider"]
+    EXTRACT --> MOCK["Mock provider"]
+    EXTRACT --> OCR["Optional local OCR"]
+    EXTRACT --> OPENAI["Optional OpenAI Responses API"]
     API --> UI
 ```
 
@@ -59,14 +61,15 @@ Core API routes:
 
 ## AI Flow
 
-1. User uploads a leaflet image.
+1. User uploads a leaflet image, PDF, or text fixture.
 2. Backend stores the file.
-3. Backend sends image and extraction instructions to OpenAI.
-4. OpenAI returns structured JSON.
-5. Backend validates JSON with Pydantic.
-6. Frontend shows review UI.
-7. User edits/approves.
-8. Backend saves reviewed guidance.
+3. Backend runs the configured extraction provider: `mock` by default, optional
+   `local_ocr`, or optional `openai`.
+4. Provider returns structured JSON or a recoverable failure.
+5. Backend validates parsed output with Pydantic.
+6. Backend stores raw output and parsed output with `needs_review=true`.
+7. Frontend shows review UI in the next milestone.
+8. User edits/approves reviewed guidance in the next milestone.
 
 ## Database Tables
 
@@ -107,12 +110,16 @@ Core API routes:
 ### leaflet_extractions
 
 - `id`
+- `leaflet_upload_id`
 - `medication_id`
-- `source_file_path`
+- `provider`
+- `source_text`
 - `raw_model_output`
-- `reviewed_guidance`
+- `parsed_output`
+- `error_message`
 - `status`
 - `created_at`
+- `updated_at`
 
 ## Error Handling
 
@@ -124,4 +131,3 @@ Core API routes:
 ## Deployment Notes
 
 For the hackathon, prefer a simple public deployment. If split hosting becomes too slow, use one backend that serves built frontend static files.
-

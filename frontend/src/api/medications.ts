@@ -1,5 +1,6 @@
 import type {
   DoseActionStatus,
+  LeafletExtraction,
   LeafletUpload,
   Medication,
   MedicationPayload,
@@ -149,5 +150,11 @@ export function uploadLeaflet(
       "X-Leaflet-Filename": encodeURIComponent(file.name)
     },
     body: file
+  });
+}
+
+export function extractLeaflet(leafletId: number): Promise<LeafletExtraction> {
+  return request<LeafletExtraction>(`/api/leaflets/${leafletId}/extract`, {
+    method: "POST"
   });
 }

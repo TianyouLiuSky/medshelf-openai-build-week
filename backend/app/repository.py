@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 from .database import get_connection
 from .models import (
     DOSE_LOG_COLUMNS,
+    LEAFLET_EXTRACTION_COLUMNS,
     LEAFLET_UPLOAD_COLUMNS,
     MEDICATION_COLUMNS,
     SCHEDULE_COLUMNS,
@@ -119,6 +120,17 @@ def row_to_dose_log(row: Row) -> dict[str, Any]:
 
 def row_to_leaflet_upload(row: Row) -> dict[str, Any]:
     return {column: row[column] for column in LEAFLET_UPLOAD_COLUMNS}
+
+
+def row_to_leaflet_extraction(row: Row) -> dict[str, Any]:
+    extraction = {column: row[column] for column in LEAFLET_EXTRACTION_COLUMNS}
+    parsed_output = extraction["parsed_output"]
+    if parsed_output:
+        try:
+            extraction["parsed_output"] = json.loads(parsed_output)
+        except json.JSONDecodeError:
+            extraction["parsed_output"] = None
+    return extraction
 
 
 def schedule_time_to_datetime(target_date: date, schedule_time: str) -> datetime:
@@ -798,6 +810,128 @@ def create_leaflet_upload(
         raise RuntimeError("Created leaflet upload could not be loaded.")
 
     return created
+
+
+def get_leaflet_extraction(
+    database_url: str, extraction_id: int
+) -> dict[str, Any] | None:
+    with get_connection(database_url) as connection:
+        row = connection.execute(
+            """
+            SELECT id, leaflet_upload_id, medication_id, provider, status,
+                   source_text, raw_model_output, parsed_output, error_message,
+                   created_at, updated_at
+            FROM leaflet_extractions
+            WHERE id = ?
+            """,
+            (extraction_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return row_to_leaflet_extraction(row)
+
+
+def create_leaflet_extraction_attempt(
+    database_url: str, leaflet_upload: dict[str, Any], provider: str
+) -> dict[str, Any]:
+    timestamp = now_iso()
+    with get_connection(database_url) as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO leaflet_extractions (
+                leaflet_upload_id, medication_id, provider, status, source_text,
+                raw_model_output, parsed_output, error_message, created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                leaflet_upload["id"],
+                leaflet_upload["medication_id"],
+                provider,
+                "extracting",
+                "",
+                "",
+                None,
+                "",
+                timestamp,
+                timestamp,
+            ),
+        )
+        connection.execute(
+            """
+            UPDATE leaflet_uploads
+            SET status = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            ("extracting", timestamp, leaflet_upload["id"]),
+        )
+        connection.commit()
+        extraction_id = int(cursor.lastrowid)
+
+    created = get_leaflet_extraction(database_url, extraction_id)
+    if created is None:
+        raise RuntimeError("Created leaflet extraction could not be loaded.")
+
+    return created
+
+
+def complete_leaflet_extraction(
+    database_url: str,
+    extraction_id: int,
+    status: str,
+    source_text: str = "",
+    raw_model_output: str = "",
+    parsed_output: dict[str, Any] | None = None,
+    error_message: str = "",
+) -> dict[str, Any] | None:
+    timestamp = now_iso()
+    parsed_json = (
+        json.dumps(parsed_output, ensure_ascii=False) if parsed_output is not None else None
+    )
+
+    with get_connection(database_url) as connection:
+        existing = connection.execute(
+            """
+            SELECT leaflet_upload_id
+            FROM leaflet_extractions
+            WHERE id = ?
+            """,
+            (extraction_id,),
+        ).fetchone()
+        if existing is None:
+            return None
+
+        connection.execute(
+            """
+            UPDATE leaflet_extractions
+            SET status = ?, source_text = ?, raw_model_output = ?,
+                parsed_output = ?, error_message = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                status,
+                source_text,
+                raw_model_output,
+                parsed_json,
+                error_message,
+                timestamp,
+                extraction_id,
+            ),
+        )
+        connection.execute(
+            """
+            UPDATE leaflet_uploads
+            SET status = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (status, timestamp, existing["leaflet_upload_id"]),
+        )
+        connection.commit()
+
+    return get_leaflet_extraction(database_url, extraction_id)
 
 
 def delete_medication(database_url: str, medication_id: int) -> bool:

@@ -224,6 +224,10 @@ class RestockSuggestionRead(BaseModel):
     safety_note: str
 
 
+Confidence = Literal["high", "medium", "low"]
+WarningSeverity = Literal["info", "caution", "urgent"]
+ExtractionProvider = Literal["mock", "local_ocr", "openai"]
+
 LeafletExtractionStatus = Literal[
     "uploaded",
     "queued",
@@ -234,6 +238,104 @@ LeafletExtractionStatus = Literal[
 ]
 
 
+class MedicineNameExtraction(BaseModel):
+    value: Optional[str] = Field(None, max_length=240)
+    source_snippet: Optional[str] = Field(None, max_length=1000)
+    confidence: Confidence = "low"
+
+    @validator("value", "source_snippet", pre=True)
+    def normalize_optional_text(cls, value: object) -> object:
+        if value is None:
+            return value
+        return str(value).strip()
+
+
+class ActiveIngredientExtraction(BaseModel):
+    name: str = Field(..., min_length=1, max_length=240)
+    strength: Optional[str] = Field(None, max_length=120)
+    source_snippet: str = Field(..., min_length=1, max_length=1000)
+    confidence: Confidence = "low"
+
+    @validator("name", "strength", "source_snippet", pre=True)
+    def normalize_text(cls, value: object) -> object:
+        if value is None:
+            return value
+        return str(value).strip()
+
+
+class UsageInstructionExtraction(BaseModel):
+    instruction: str = Field(..., min_length=1, max_length=1200)
+    source_snippet: str = Field(..., min_length=1, max_length=1200)
+    confidence: Confidence = "low"
+
+    @validator("instruction", "source_snippet", pre=True)
+    def normalize_text(cls, value: object) -> object:
+        if value is None:
+            return value
+        return str(value).strip()
+
+
+class WarningExtraction(BaseModel):
+    warning: str = Field(..., min_length=1, max_length=1200)
+    severity: WarningSeverity = "caution"
+    source_snippet: str = Field(..., min_length=1, max_length=1200)
+    confidence: Confidence = "low"
+
+    @validator("warning", "source_snippet", pre=True)
+    def normalize_text(cls, value: object) -> object:
+        if value is None:
+            return value
+        return str(value).strip()
+
+
+class TextClaimExtraction(BaseModel):
+    text: str = Field(..., min_length=1, max_length=1200)
+    source_snippet: str = Field(..., min_length=1, max_length=1200)
+    confidence: Confidence = "low"
+
+    @validator("text", "source_snippet", pre=True)
+    def normalize_text(cls, value: object) -> object:
+        if value is None:
+            return value
+        return str(value).strip()
+
+
+class LeafletParsedOutput(BaseModel):
+    medicine_name: MedicineNameExtraction = Field(
+        default_factory=MedicineNameExtraction
+    )
+    active_ingredients: list[ActiveIngredientExtraction] = Field(default_factory=list)
+    usage_instructions: list[UsageInstructionExtraction] = Field(default_factory=list)
+    warnings: list[WarningExtraction] = Field(default_factory=list)
+    contraindications: list[TextClaimExtraction] = Field(default_factory=list)
+    side_effects: list[TextClaimExtraction] = Field(default_factory=list)
+    storage: list[TextClaimExtraction] = Field(default_factory=list)
+    plain_language_summary: str = Field("", max_length=4000)
+    translated_summary: str = Field("", max_length=4000)
+    needs_review: bool = True
+    review_notes: list[str] = Field(default_factory=list)
+
+    @validator("plain_language_summary", "translated_summary", pre=True)
+    def normalize_summary(cls, value: object) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    @validator("review_notes", pre=True)
+    def normalize_review_notes(cls, value: object) -> list[str]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            return [str(value).strip()]
+        return [str(item).strip() for item in value if str(item).strip()]
+
+    @validator("needs_review")
+    def extraction_requires_review(cls, value: bool) -> bool:
+        if value is not True:
+            raise ValueError("AI-derived leaflet output must remain needs_review.")
+        return value
+
+
 class LeafletUploadRead(BaseModel):
     id: int
     medication_id: int
@@ -242,6 +344,20 @@ class LeafletUploadRead(BaseModel):
     content_type: str
     size_bytes: int
     status: LeafletExtractionStatus
+    created_at: datetime
+    updated_at: datetime
+
+
+class LeafletExtractionRead(BaseModel):
+    id: int
+    leaflet_upload_id: int
+    medication_id: int
+    provider: ExtractionProvider
+    status: LeafletExtractionStatus
+    source_text: str
+    raw_model_output: str
+    parsed_output: Optional[LeafletParsedOutput] = None
+    error_message: str
     created_at: datetime
     updated_at: datetime
 

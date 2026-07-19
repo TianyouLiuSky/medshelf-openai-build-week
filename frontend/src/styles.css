@@ -595,6 +595,14 @@ h3 {
   font-size: 0.9rem;
 }
 
+.leaflet-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .schedule-panel {
   display: grid;
   gap: 16px;
@@ -788,6 +796,7 @@ textarea {
   .detail-header,
   .medicine-list-topline,
   .low-stock-title-row,
+  .leaflet-row-actions,
   .schedule-row,
   .leaflet-row,
   .dose-actions,

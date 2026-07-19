@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="MedShelf API",
         summary="Backend API for the MedShelf medicine tracking MVP.",
-        version="0.5.0",
+        version="0.6.0",
         lifespan=lifespan,
     )
     app.state.settings = settings

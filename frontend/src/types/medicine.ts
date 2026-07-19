@@ -112,3 +112,19 @@ export interface LeafletUpload {
   created_at: string;
   updated_at: string;
 }
+
+export type LeafletExtractionProvider = "mock" | "local_ocr" | "openai";
+
+export interface LeafletExtraction {
+  id: number;
+  leaflet_upload_id: number;
+  medication_id: number;
+  provider: LeafletExtractionProvider;
+  status: LeafletExtractionStatus;
+  source_text: string;
+  raw_model_output: string;
+  parsed_output: unknown | null;
+  error_message: string;
+  created_at: string;
+  updated_at: string;
+}

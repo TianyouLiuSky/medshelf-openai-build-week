@@ -14,6 +14,7 @@ interface MedicineDetailProps {
   restockSuggestion?: RestockSuggestion;
   leafletUploads: LeafletUpload[];
   schedules: Schedule[];
+  activeLeafletExtractionId: number | null;
   isScheduleSaving: boolean;
   isLeafletLoading: boolean;
   isLeafletUploading: boolean;
@@ -22,6 +23,7 @@ interface MedicineDetailProps {
   onDelete: (medication: Medication) => void;
   onDeleteSchedule: (schedule: Schedule) => void;
   onEdit: (medication: Medication) => void;
+  onExtractLeaflet: (upload: LeafletUpload) => Promise<void>;
   onUploadLeaflet: (file: File) => Promise<void>;
 }
 
@@ -86,6 +88,7 @@ function MedicineDetail({
   restockSuggestion,
   leafletUploads,
   schedules,
+  activeLeafletExtractionId,
   isScheduleSaving,
   isLeafletLoading,
   isLeafletUploading,
@@ -94,6 +97,7 @@ function MedicineDetail({
   onDelete,
   onDeleteSchedule,
   onEdit,
+  onExtractLeaflet,
   onUploadLeaflet
 }: MedicineDetailProps) {
   if (!medication) {
@@ -200,8 +204,10 @@ function MedicineDetail({
 
       <LeafletUploadPanel
         uploads={leafletUploads}
+        activeExtractionId={activeLeafletExtractionId}
         isLoading={isLeafletLoading}
         isUploading={isLeafletUploading}
+        onExtract={onExtractLeaflet}
         onUpload={onUploadLeaflet}
       />
 

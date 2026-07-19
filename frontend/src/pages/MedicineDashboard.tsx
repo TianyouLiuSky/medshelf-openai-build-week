@@ -5,6 +5,7 @@ import {
   createMedication,
   deleteSchedule as deleteScheduleRequest,
   deleteMedication,
+  extractLeaflet,
   getRestockSuggestion,
   getTodayDashboard,
   listLeafletUploads,
@@ -63,6 +64,9 @@ function MedicineDashboard() {
   const [isSaving, setIsSaving] = useState(false);
   const [isScheduleSaving, setIsScheduleSaving] = useState(false);
   const [activeDoseKey, setActiveDoseKey] = useState<string | null>(null);
+  const [activeLeafletExtractionId, setActiveLeafletExtractionId] = useState<
+    number | null
+  >(null);
   const [error, setError] = useState("");
 
   const selectedMedication = useMemo(
@@ -410,6 +414,27 @@ function MedicineDashboard() {
     }
   }
 
+  async function handleExtractLeaflet(upload: LeafletUpload) {
+    setError("");
+    setActiveLeafletExtractionId(upload.id);
+
+    try {
+      const extraction = await extractLeaflet(upload.id);
+      if (extraction.status === "failed") {
+        setError(extraction.error_message || "Leaflet extraction failed.");
+      }
+      await loadLeafletsForMedication(upload.medication_id);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not extract leaflet."
+      );
+    } finally {
+      setActiveLeafletExtractionId(null);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -553,6 +578,7 @@ function MedicineDashboard() {
             }
             leafletUploads={leafletUploads}
             schedules={schedules}
+            activeLeafletExtractionId={activeLeafletExtractionId}
             isScheduleSaving={isScheduleSaving}
             isLeafletLoading={isLeafletLoading}
             isLeafletUploading={isLeafletUploading}
@@ -564,6 +590,7 @@ function MedicineDashboard() {
               setSelectedMedicationId(medication.id);
               setMode("edit");
             }}
+            onExtractLeaflet={handleExtractLeaflet}
             onUploadLeaflet={handleUploadLeaflet}
           />
         )}

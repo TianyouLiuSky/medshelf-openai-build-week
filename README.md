@@ -95,6 +95,7 @@ The API runs at [http://127.0.0.1:8000](http://127.0.0.1:8000). The health check
 
 On first startup, the backend creates the SQLite database and loads demo medicines when `SEED_DEMO_DATA=true`.
 Leaflet uploads are stored under `./uploads/leaflets` by default. That folder is ignored by git.
+Leaflet extraction uses `EXTRACTION_PROVIDER=mock` by default, so the local demo does not require OpenAI or any paid API. Optional providers are `local_ocr` and `openai`.
 
 ### API Routes
 
@@ -111,9 +112,18 @@ Leaflet uploads are stored under `./uploads/leaflets` by default. That folder is
 - `POST /api/medications/{id}/doses`
 - `GET /api/medications/{id}/leaflets`
 - `POST /api/medications/{id}/leaflet`
+- `POST /api/leaflets/{id}/extract`
 - `GET /api/dashboard/today?date=YYYY-MM-DD`
 - `GET /api/restock/suggestions?medication_id={id}&region=optional`
 - `POST /api/demo/seed`
+
+### Leaflet Extraction Providers
+
+- `mock`: default provider for local demos. Reads text uploads, creates conservative draft extraction records, and keeps them in `needs_review`.
+- `local_ocr`: reads text uploads directly and can run a configured OCR command such as `tesseract` for image uploads. Install the OCR tool separately if you want image OCR locally.
+- `openai`: optional provider behind `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, and `OPENAI_EXTRACTION_MODEL`. It uses structured JSON output and stores both the raw model response and validated parsed output.
+
+All AI-derived extraction output remains draft data with `needs_review=true`; it is not saved as approved medicine guidance by this milestone.
 
 ### Checks
 
@@ -134,6 +144,11 @@ BACKEND_CORS_ORIGINS=http://localhost:5173
 SEED_DEMO_DATA=true
 LEAFLET_UPLOAD_DIR=./uploads/leaflets
 LEAFLET_MAX_UPLOAD_BYTES=10000000
+EXTRACTION_PROVIDER=mock
+LOCAL_OCR_COMMAND=tesseract
+LOCAL_OCR_TIMEOUT_SECONDS=20
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_EXTRACTION_MODEL=gpt-4o-mini
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
@@ -143,6 +158,5 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 2. Add a medicine manually.
 3. Mark a dose as taken and show inventory decreasing.
 4. Upload the sample leaflet fixture at `docs/fixtures/sample-leaflet.txt`.
-5. Show AI extraction, translation, source snippets, confidence, and review.
-6. Save reviewed guidance to the medicine profile.
-7. Trigger a low-stock alert and show restock search links.
+5. Run extraction and show the leaflet moving into `needs_review`.
+6. Trigger a low-stock alert and show restock search links.
