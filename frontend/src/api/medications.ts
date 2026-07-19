@@ -1,5 +1,6 @@
 import type {
   DoseActionStatus,
+  LeafletUpload,
   Medication,
   MedicationPayload,
   RestockSuggestion,
@@ -131,4 +132,22 @@ export function getRestockSuggestion(
   }
 
   return request<RestockSuggestion>(`/api/restock/suggestions?${params}`);
+}
+
+export function listLeafletUploads(medicationId: number): Promise<LeafletUpload[]> {
+  return request<LeafletUpload[]>(`/api/medications/${medicationId}/leaflets`);
+}
+
+export function uploadLeaflet(
+  medicationId: number,
+  file: File
+): Promise<LeafletUpload> {
+  return request<LeafletUpload>(`/api/medications/${medicationId}/leaflet`, {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      "X-Leaflet-Filename": encodeURIComponent(file.name)
+    },
+    body: file
+  });
 }

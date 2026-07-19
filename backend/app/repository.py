@@ -5,7 +5,12 @@ from typing import Any
 from urllib.parse import quote_plus
 
 from .database import get_connection
-from .models import DOSE_LOG_COLUMNS, MEDICATION_COLUMNS, SCHEDULE_COLUMNS
+from .models import (
+    DOSE_LOG_COLUMNS,
+    LEAFLET_UPLOAD_COLUMNS,
+    MEDICATION_COLUMNS,
+    SCHEDULE_COLUMNS,
+)
 from .schemas import (
     DoseActionCreate,
     MedicationCreate,
@@ -110,6 +115,10 @@ def row_to_schedule(row: Row) -> dict[str, Any]:
 
 def row_to_dose_log(row: Row) -> dict[str, Any]:
     return {column: row[column] for column in DOSE_LOG_COLUMNS}
+
+
+def row_to_leaflet_upload(row: Row) -> dict[str, Any]:
+    return {column: row[column] for column in LEAFLET_UPLOAD_COLUMNS}
 
 
 def schedule_time_to_datetime(target_date: date, schedule_time: str) -> datetime:
@@ -702,6 +711,93 @@ def build_restock_suggestion(
             "substitution, and dosing questions with a pharmacist or clinician."
         ),
     }
+
+
+def get_leaflet_upload(database_url: str, leaflet_id: int) -> dict[str, Any] | None:
+    with get_connection(database_url) as connection:
+        row = connection.execute(
+            """
+            SELECT id, medication_id, original_filename, stored_filename,
+                   source_file_path, content_type, size_bytes, status,
+                   created_at, updated_at
+            FROM leaflet_uploads
+            WHERE id = ?
+            """,
+            (leaflet_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return row_to_leaflet_upload(row)
+
+
+def list_leaflet_uploads_for_medication(
+    database_url: str, medication_id: int
+) -> list[dict[str, Any]] | None:
+    if get_medication(database_url, medication_id) is None:
+        return None
+
+    with get_connection(database_url) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, medication_id, original_filename, stored_filename,
+                   source_file_path, content_type, size_bytes, status,
+                   created_at, updated_at
+            FROM leaflet_uploads
+            WHERE medication_id = ?
+            ORDER BY created_at DESC, id DESC
+            """,
+            (medication_id,),
+        ).fetchall()
+
+    return [row_to_leaflet_upload(row) for row in rows]
+
+
+def create_leaflet_upload(
+    database_url: str,
+    medication_id: int,
+    original_filename: str,
+    stored_filename: str,
+    source_file_path: str,
+    content_type: str,
+    size_bytes: int,
+    status: str = "uploaded",
+) -> dict[str, Any] | None:
+    if get_medication(database_url, medication_id) is None:
+        return None
+
+    timestamp = now_iso()
+    with get_connection(database_url) as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO leaflet_uploads (
+                medication_id, original_filename, stored_filename,
+                source_file_path, content_type, size_bytes, status,
+                created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                medication_id,
+                original_filename,
+                stored_filename,
+                source_file_path,
+                content_type,
+                size_bytes,
+                status,
+                timestamp,
+                timestamp,
+            ),
+        )
+        connection.commit()
+        leaflet_id = int(cursor.lastrowid)
+
+    created = get_leaflet_upload(database_url, leaflet_id)
+    if created is None:
+        raise RuntimeError("Created leaflet upload could not be loaded.")
+
+    return created
 
 
 def delete_medication(database_url: str, medication_id: int) -> bool:

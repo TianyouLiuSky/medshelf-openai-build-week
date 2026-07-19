@@ -7,11 +7,13 @@ import {
   deleteMedication,
   getRestockSuggestion,
   getTodayDashboard,
+  listLeafletUploads,
   listMedications,
   listSchedules,
   recordDoseAction,
   seedDemoMedications,
-  updateMedication
+  updateMedication,
+  uploadLeaflet
 } from "../api/medications";
 import MedicineDetail from "../components/MedicineDetail";
 import MedicationForm from "../components/MedicationForm";
@@ -21,6 +23,7 @@ import StatusBadge from "../components/StatusBadge";
 import TodayDashboardPanel from "../components/TodayDashboard";
 import type {
   DoseActionStatus,
+  LeafletUpload,
   Medication,
   MedicationPayload,
   RestockSuggestion,
@@ -47,6 +50,7 @@ function MedicineDashboard() {
   const [restockSuggestions, setRestockSuggestions] = useState<
     Record<number, RestockSuggestion>
   >({});
+  const [leafletUploads, setLeafletUploads] = useState<LeafletUpload[]>([]);
   const [selectedMedicationId, setSelectedMedicationId] = useState<number | null>(
     null
   );
@@ -54,6 +58,8 @@ function MedicineDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isRestockLoading, setIsRestockLoading] = useState(false);
+  const [isLeafletLoading, setIsLeafletLoading] = useState(false);
+  const [isLeafletUploading, setIsLeafletUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isScheduleSaving, setIsScheduleSaving] = useState(false);
   const [activeDoseKey, setActiveDoseKey] = useState<string | null>(null);
@@ -121,6 +127,23 @@ function MedicineDashboard() {
     }
   }
 
+  async function loadLeafletsForMedication(medicationId: number) {
+    setIsLeafletLoading(true);
+
+    try {
+      const uploads = await listLeafletUploads(medicationId);
+      setLeafletUploads(uploads);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not load leaflets."
+      );
+    } finally {
+      setIsLeafletLoading(false);
+    }
+  }
+
   async function loadTodayDashboard() {
     setIsDashboardLoading(true);
 
@@ -146,10 +169,12 @@ function MedicineDashboard() {
   useEffect(() => {
     if (selectedMedicationId === null) {
       setSchedules([]);
+      setLeafletUploads([]);
       return;
     }
 
     void loadSchedulesForMedication(selectedMedicationId);
+    void loadLeafletsForMedication(selectedMedicationId);
   }, [selectedMedicationId]);
 
   useEffect(() => {
@@ -362,6 +387,29 @@ function MedicineDashboard() {
     }
   }
 
+  async function handleUploadLeaflet(file: File) {
+    if (!selectedMedication) {
+      return;
+    }
+
+    setError("");
+    setIsLeafletUploading(true);
+
+    try {
+      await uploadLeaflet(selectedMedication.id, file);
+      await loadLeafletsForMedication(selectedMedication.id);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not upload leaflet."
+      );
+      throw caughtError;
+    } finally {
+      setIsLeafletUploading(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -503,8 +551,11 @@ function MedicineDashboard() {
                 ? restockSuggestions[selectedMedication.id]
                 : undefined
             }
+            leafletUploads={leafletUploads}
             schedules={schedules}
             isScheduleSaving={isScheduleSaving}
+            isLeafletLoading={isLeafletLoading}
+            isLeafletUploading={isLeafletUploading}
             onAddSchedule={handleAddSchedule}
             onCreate={() => setMode("new")}
             onDelete={handleDelete}
@@ -513,6 +564,7 @@ function MedicineDashboard() {
               setSelectedMedicationId(medication.id);
               setMode("edit");
             }}
+            onUploadLeaflet={handleUploadLeaflet}
           />
         )}
       </section>

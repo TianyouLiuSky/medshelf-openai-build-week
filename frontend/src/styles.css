@@ -533,6 +533,68 @@ h3 {
   white-space: pre-wrap;
 }
 
+.leaflet-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #e4ebe6;
+}
+
+.leaflet-safety {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid #edd58d;
+  border-radius: 8px;
+  background: #fff9e8;
+  color: #5c4820;
+}
+
+.leaflet-safety span {
+  font-size: 0.9rem;
+}
+
+.leaflet-upload-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.leaflet-list {
+  display: grid;
+  gap: 10px;
+}
+
+.leaflet-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  min-height: 76px;
+  padding: 12px;
+  border: 1px solid #e4ebe6;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.leaflet-row div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.leaflet-row strong,
+.leaflet-row span {
+  overflow-wrap: anywhere;
+}
+
+.leaflet-row span {
+  color: #60716b;
+  font-size: 0.9rem;
+}
+
 .schedule-panel {
   display: grid;
   gap: 16px;
@@ -709,6 +771,7 @@ textarea {
   .workspace-grid,
   .today-dose,
   .low-stock-card,
+  .leaflet-upload-form,
   .detail-grid,
   .form-grid {
     grid-template-columns: 1fr;
@@ -726,6 +789,7 @@ textarea {
   .medicine-list-topline,
   .low-stock-title-row,
   .schedule-row,
+  .leaflet-row,
   .dose-actions,
   .restock-actions {
     flex-direction: column;

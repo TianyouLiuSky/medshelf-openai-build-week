@@ -92,3 +92,23 @@ export interface RestockSuggestion {
   links: RestockLink[];
   safety_note: string;
 }
+
+export type LeafletExtractionStatus =
+  | "uploaded"
+  | "queued"
+  | "extracting"
+  | "needs_review"
+  | "failed"
+  | "approved";
+
+export interface LeafletUpload {
+  id: number;
+  medication_id: number;
+  original_filename: string;
+  stored_filename: string;
+  content_type: string;
+  size_bytes: number;
+  status: LeafletExtractionStatus;
+  created_at: string;
+  updated_at: string;
+}

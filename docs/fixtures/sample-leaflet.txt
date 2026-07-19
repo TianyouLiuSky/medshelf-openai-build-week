@@ -1,0 +1,19 @@
+MedShelf sample leaflet fixture
+Demo-only text for testing upload and review workflows.
+
+Medicine name:
+Sample Relief Tablet
+
+Active ingredient:
+Example active ingredient 10 mg.
+
+Directions:
+Follow the directions on the package label or the plan from your clinician or
+pharmacist.
+
+Warnings:
+Do not use this demo text as medical advice. Ask a clinician or pharmacist if
+the leaflet and your prescribed plan do not match.
+
+Storage:
+Store in a cool, dry place away from children.

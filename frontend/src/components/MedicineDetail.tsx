@@ -1,6 +1,8 @@
+import LeafletUploadPanel from "./LeafletUploadPanel";
 import ScheduleForm from "./ScheduleForm";
 import StatusBadge from "./StatusBadge";
 import type {
+  LeafletUpload,
   Medication,
   RestockSuggestion,
   Schedule,
@@ -10,13 +12,17 @@ import type {
 interface MedicineDetailProps {
   medication: Medication | null;
   restockSuggestion?: RestockSuggestion;
+  leafletUploads: LeafletUpload[];
   schedules: Schedule[];
   isScheduleSaving: boolean;
+  isLeafletLoading: boolean;
+  isLeafletUploading: boolean;
   onAddSchedule: (schedule: SchedulePayload) => Promise<void>;
   onCreate: () => void;
   onDelete: (medication: Medication) => void;
   onDeleteSchedule: (schedule: Schedule) => void;
   onEdit: (medication: Medication) => void;
+  onUploadLeaflet: (file: File) => Promise<void>;
 }
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -78,13 +84,17 @@ function formatScheduleRange(schedule: Schedule): string {
 function MedicineDetail({
   medication,
   restockSuggestion,
+  leafletUploads,
   schedules,
   isScheduleSaving,
+  isLeafletLoading,
+  isLeafletUploading,
   onAddSchedule,
   onCreate,
   onDelete,
   onDeleteSchedule,
-  onEdit
+  onEdit,
+  onUploadLeaflet
 }: MedicineDetailProps) {
   if (!medication) {
     return (
@@ -187,6 +197,13 @@ function MedicineDetail({
         <h3>Notes</h3>
         <p>{medication.notes || "No notes recorded."}</p>
       </div>
+
+      <LeafletUploadPanel
+        uploads={leafletUploads}
+        isLoading={isLeafletLoading}
+        isUploading={isLeafletUploading}
+        onUpload={onUploadLeaflet}
+      />
 
       <div className="schedule-panel">
         <div className="section-heading">

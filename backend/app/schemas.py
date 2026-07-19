@@ -110,15 +110,15 @@ class ScheduleBase(BaseModel):
     end_date: Optional[date] = None
 
     @validator("times")
-    def validate_times(cls, values: list[str]) -> list[str]:
-        normalized_times = sorted({normalize_time(value) for value in values})
+    def validate_times(cls, value: list[str]) -> list[str]:
+        normalized_times = sorted({normalize_time(item) for item in value})
         if not normalized_times:
             raise ValueError("At least one schedule time is required.")
         return normalized_times
 
     @validator("days_of_week")
-    def validate_days_of_week(cls, values: list[int]) -> list[int]:
-        return normalize_days(values)
+    def validate_days_of_week(cls, value: list[int]) -> list[int]:
+        return normalize_days(value)
 
     @validator("end_date")
     def end_date_must_not_precede_start(
@@ -142,19 +142,19 @@ class ScheduleUpdate(BaseModel):
 
     @validator("times")
     def validate_optional_times(
-        cls, values: Optional[list[str]]
+        cls, value: Optional[list[str]]
     ) -> Optional[list[str]]:
-        if values is None:
-            return values
-        return sorted({normalize_time(value) for value in values})
+        if value is None:
+            return value
+        return sorted({normalize_time(item) for item in value})
 
     @validator("days_of_week")
     def validate_optional_days(
-        cls, values: Optional[list[int]]
+        cls, value: Optional[list[int]]
     ) -> Optional[list[int]]:
-        if values is None:
-            return values
-        return normalize_days(values)
+        if value is None:
+            return value
+        return normalize_days(value)
 
 
 class ScheduleRead(ScheduleBase):
@@ -222,6 +222,28 @@ class RestockSuggestionRead(BaseModel):
     search_query: str
     links: list[RestockLink]
     safety_note: str
+
+
+LeafletExtractionStatus = Literal[
+    "uploaded",
+    "queued",
+    "extracting",
+    "needs_review",
+    "failed",
+    "approved",
+]
+
+
+class LeafletUploadRead(BaseModel):
+    id: int
+    medication_id: int
+    original_filename: str
+    stored_filename: str
+    content_type: str
+    size_bytes: int
+    status: LeafletExtractionStatus
+    created_at: datetime
+    updated_at: datetime
 
 
 class DemoSeedResponse(BaseModel):

@@ -51,6 +51,33 @@ CREATE TABLE IF NOT EXISTS dose_logs (
 );
 """
 
+LEAFLET_UPLOADS_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS leaflet_uploads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    medication_id INTEGER NOT NULL,
+    original_filename TEXT NOT NULL,
+    stored_filename TEXT NOT NULL,
+    source_file_path TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'uploaded',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CHECK (size_bytes >= 0),
+    CHECK (
+        status IN (
+            'uploaded',
+            'queued',
+            'extracting',
+            'needs_review',
+            'failed',
+            'approved'
+        )
+    ),
+    FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
+);
+"""
+
 MEDICATION_COLUMNS = (
     "id",
     "name",
@@ -63,6 +90,19 @@ MEDICATION_COLUMNS = (
     "dose_unit",
     "low_stock_threshold",
     "notes",
+    "created_at",
+    "updated_at",
+)
+
+LEAFLET_UPLOAD_COLUMNS = (
+    "id",
+    "medication_id",
+    "original_filename",
+    "stored_filename",
+    "source_file_path",
+    "content_type",
+    "size_bytes",
+    "status",
     "created_at",
     "updated_at",
 )
