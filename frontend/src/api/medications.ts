@@ -1,6 +1,8 @@
 import type {
   DoseActionStatus,
   LeafletExtraction,
+  LeafletGuidance,
+  LeafletGuidanceApprovalPayload,
   LeafletUpload,
   Medication,
   MedicationPayload,
@@ -156,5 +158,29 @@ export function uploadLeaflet(
 export function extractLeaflet(leafletId: number): Promise<LeafletExtraction> {
   return request<LeafletExtraction>(`/api/leaflets/${leafletId}/extract`, {
     method: "POST"
+  });
+}
+
+export function getLatestLeafletExtraction(
+  leafletId: number
+): Promise<LeafletExtraction> {
+  return request<LeafletExtraction>(`/api/leaflets/${leafletId}/extraction`);
+}
+
+export function listLeafletGuidance(
+  medicationId: number
+): Promise<LeafletGuidance[]> {
+  return request<LeafletGuidance[]>(
+    `/api/medications/${medicationId}/leaflet-guidance`
+  );
+}
+
+export function approveLeafletExtraction(
+  leafletId: number,
+  guidance: LeafletGuidanceApprovalPayload
+): Promise<LeafletGuidance> {
+  return request<LeafletGuidance>(`/api/leaflets/${leafletId}/approve`, {
+    method: "POST",
+    body: JSON.stringify(guidance)
   });
 }

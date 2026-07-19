@@ -112,7 +112,10 @@ Leaflet extraction uses `EXTRACTION_PROVIDER=mock` by default, so the local demo
 - `POST /api/medications/{id}/doses`
 - `GET /api/medications/{id}/leaflets`
 - `POST /api/medications/{id}/leaflet`
+- `GET /api/medications/{id}/leaflet-guidance`
+- `GET /api/leaflets/{id}/extraction`
 - `POST /api/leaflets/{id}/extract`
+- `POST /api/leaflets/{id}/approve`
 - `GET /api/dashboard/today?date=YYYY-MM-DD`
 - `GET /api/restock/suggestions?medication_id={id}&region=optional`
 - `POST /api/demo/seed`
@@ -123,7 +126,8 @@ Leaflet extraction uses `EXTRACTION_PROVIDER=mock` by default, so the local demo
 - `local_ocr`: reads text uploads directly and can run a configured OCR command such as `tesseract` for image uploads. Install the OCR tool separately if you want image OCR locally.
 - `openai`: optional provider behind `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, and `OPENAI_EXTRACTION_MODEL`. It uses structured JSON output and stores both the raw model response and validated parsed output.
 
-All AI-derived extraction output remains draft data with `needs_review=true`; it is not saved as approved medicine guidance by this milestone.
+AI-derived extraction output remains draft data with `needs_review=true` until
+the user edits/reviews it and clicks Approve.
 
 ### Checks
 
@@ -159,4 +163,6 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 3. Mark a dose as taken and show inventory decreasing.
 4. Upload the sample leaflet fixture at `docs/fixtures/sample-leaflet.txt`.
 5. Run extraction and show the leaflet moving into `needs_review`.
-6. Trigger a low-stock alert and show restock search links.
+6. Open the review panel, edit or remove one extracted field, and approve guidance.
+7. Show the approved guidance on the medicine profile.
+8. Trigger a low-stock alert and show restock search links.

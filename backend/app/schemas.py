@@ -336,6 +336,43 @@ class LeafletParsedOutput(BaseModel):
         return value
 
 
+class LeafletGuidanceContentBase(BaseModel):
+    medicine_name: MedicineNameExtraction = Field(
+        default_factory=MedicineNameExtraction
+    )
+    active_ingredients: list[ActiveIngredientExtraction] = Field(default_factory=list)
+    usage_instructions: list[UsageInstructionExtraction] = Field(default_factory=list)
+    warnings: list[WarningExtraction] = Field(default_factory=list)
+    contraindications: list[TextClaimExtraction] = Field(default_factory=list)
+    side_effects: list[TextClaimExtraction] = Field(default_factory=list)
+    storage: list[TextClaimExtraction] = Field(default_factory=list)
+    plain_language_summary: str = Field("", max_length=4000)
+    translated_summary: str = Field("", max_length=4000)
+    review_notes: list[str] = Field(default_factory=list)
+
+    @validator("plain_language_summary", "translated_summary", pre=True)
+    def normalize_summary(cls, value: object) -> str:
+        if value is None:
+            return ""
+        return str(value).strip()
+
+    @validator("review_notes", pre=True)
+    def normalize_review_notes(cls, value: object) -> list[str]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            return [str(value).strip()]
+        return [str(item).strip() for item in value if str(item).strip()]
+
+
+class LeafletGuidanceApproveRequest(LeafletGuidanceContentBase):
+    extraction_id: int
+
+
+class LeafletApprovedGuidance(LeafletGuidanceContentBase):
+    needs_review: Literal[False] = False
+
+
 class LeafletUploadRead(BaseModel):
     id: int
     medication_id: int
@@ -358,6 +395,16 @@ class LeafletExtractionRead(BaseModel):
     raw_model_output: str
     parsed_output: Optional[LeafletParsedOutput] = None
     error_message: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class LeafletGuidanceRead(BaseModel):
+    id: int
+    medication_id: int
+    leaflet_upload_id: int
+    leaflet_extraction_id: int
+    guidance: LeafletApprovedGuidance
     created_at: datetime
     updated_at: datetime
 

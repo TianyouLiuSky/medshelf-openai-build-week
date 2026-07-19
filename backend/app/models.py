@@ -97,6 +97,21 @@ CREATE TABLE IF NOT EXISTS leaflet_extractions (
 );
 """
 
+LEAFLET_GUIDANCE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS leaflet_guidance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    medication_id INTEGER NOT NULL,
+    leaflet_upload_id INTEGER NOT NULL,
+    leaflet_extraction_id INTEGER NOT NULL UNIQUE,
+    reviewed_output TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE,
+    FOREIGN KEY (leaflet_upload_id) REFERENCES leaflet_uploads(id) ON DELETE CASCADE,
+    FOREIGN KEY (leaflet_extraction_id) REFERENCES leaflet_extractions(id) ON DELETE CASCADE
+);
+"""
+
 MEDICATION_COLUMNS = (
     "id",
     "name",
@@ -136,6 +151,16 @@ LEAFLET_UPLOAD_COLUMNS = (
     "content_type",
     "size_bytes",
     "status",
+    "created_at",
+    "updated_at",
+)
+
+LEAFLET_GUIDANCE_COLUMNS = (
+    "id",
+    "medication_id",
+    "leaflet_upload_id",
+    "leaflet_extraction_id",
+    "reviewed_output",
     "created_at",
     "updated_at",
 )

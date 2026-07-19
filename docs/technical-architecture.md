@@ -68,8 +68,11 @@ Core API routes:
 4. Provider returns structured JSON or a recoverable failure.
 5. Backend validates parsed output with Pydantic.
 6. Backend stores raw output and parsed output with `needs_review=true`.
-7. Frontend shows review UI in the next milestone.
-8. User edits/approves reviewed guidance in the next milestone.
+7. Frontend shows the draft in an editable review UI with confidence and source
+   snippets.
+8. User edits/removes fields and approves reviewed guidance.
+9. Backend saves a reviewed guidance record and marks the upload/extraction as
+   `approved`.
 
 ## Database Tables
 
@@ -118,6 +121,16 @@ Core API routes:
 - `parsed_output`
 - `error_message`
 - `status`
+- `created_at`
+- `updated_at`
+
+### leaflet_guidance
+
+- `id`
+- `medication_id`
+- `leaflet_upload_id`
+- `leaflet_extraction_id`
+- `reviewed_output`
 - `created_at`
 - `updated_at`
 

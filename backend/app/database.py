@@ -4,6 +4,7 @@ import sqlite3
 from .models import (
     DOSE_LOGS_TABLE_SQL,
     LEAFLET_EXTRACTIONS_TABLE_SQL,
+    LEAFLET_GUIDANCE_TABLE_SQL,
     LEAFLET_UPLOADS_TABLE_SQL,
     MEDICATIONS_TABLE_SQL,
     SCHEDULES_TABLE_SQL,
@@ -45,4 +46,5 @@ def init_db(database_url: str) -> None:
         connection.execute(DOSE_LOGS_TABLE_SQL)
         connection.execute(LEAFLET_UPLOADS_TABLE_SQL)
         connection.execute(LEAFLET_EXTRACTIONS_TABLE_SQL)
+        connection.execute(LEAFLET_GUIDANCE_TABLE_SQL)
         connection.commit()

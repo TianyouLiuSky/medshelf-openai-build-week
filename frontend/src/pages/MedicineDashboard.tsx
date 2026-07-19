@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  approveLeafletExtraction,
   createSchedule,
   createMedication,
   deleteSchedule as deleteScheduleRequest,
   deleteMedication,
   extractLeaflet,
+  getLatestLeafletExtraction,
   getRestockSuggestion,
   getTodayDashboard,
+  listLeafletGuidance,
   listLeafletUploads,
   listMedications,
   listSchedules,
@@ -24,6 +27,9 @@ import StatusBadge from "../components/StatusBadge";
 import TodayDashboardPanel from "../components/TodayDashboard";
 import type {
   DoseActionStatus,
+  LeafletExtraction,
+  LeafletGuidance,
+  LeafletGuidancePayload,
   LeafletUpload,
   Medication,
   MedicationPayload,
@@ -52,6 +58,9 @@ function MedicineDashboard() {
     Record<number, RestockSuggestion>
   >({});
   const [leafletUploads, setLeafletUploads] = useState<LeafletUpload[]>([]);
+  const [leafletGuidance, setLeafletGuidance] = useState<LeafletGuidance[]>([]);
+  const [selectedLeafletExtraction, setSelectedLeafletExtraction] =
+    useState<LeafletExtraction | null>(null);
   const [selectedMedicationId, setSelectedMedicationId] = useState<number | null>(
     null
   );
@@ -60,11 +69,16 @@ function MedicineDashboard() {
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isRestockLoading, setIsRestockLoading] = useState(false);
   const [isLeafletLoading, setIsLeafletLoading] = useState(false);
+  const [isLeafletReviewLoading, setIsLeafletReviewLoading] = useState(false);
   const [isLeafletUploading, setIsLeafletUploading] = useState(false);
+  const [isLeafletApproving, setIsLeafletApproving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isScheduleSaving, setIsScheduleSaving] = useState(false);
   const [activeDoseKey, setActiveDoseKey] = useState<string | null>(null);
   const [activeLeafletExtractionId, setActiveLeafletExtractionId] = useState<
+    number | null
+  >(null);
+  const [activeLeafletReviewId, setActiveLeafletReviewId] = useState<
     number | null
   >(null);
   const [error, setError] = useState("");
@@ -148,6 +162,19 @@ function MedicineDashboard() {
     }
   }
 
+  async function loadLeafletGuidanceForMedication(medicationId: number) {
+    try {
+      const guidance = await listLeafletGuidance(medicationId);
+      setLeafletGuidance(guidance);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not load reviewed leaflet guidance."
+      );
+    }
+  }
+
   async function loadTodayDashboard() {
     setIsDashboardLoading(true);
 
@@ -174,11 +201,14 @@ function MedicineDashboard() {
     if (selectedMedicationId === null) {
       setSchedules([]);
       setLeafletUploads([]);
+      setLeafletGuidance([]);
+      setSelectedLeafletExtraction(null);
       return;
     }
 
     void loadSchedulesForMedication(selectedMedicationId);
     void loadLeafletsForMedication(selectedMedicationId);
+    void loadLeafletGuidanceForMedication(selectedMedicationId);
   }, [selectedMedicationId]);
 
   useEffect(() => {
@@ -401,6 +431,7 @@ function MedicineDashboard() {
 
     try {
       await uploadLeaflet(selectedMedication.id, file);
+      setSelectedLeafletExtraction(null);
       await loadLeafletsForMedication(selectedMedication.id);
     } catch (caughtError) {
       setError(
@@ -422,6 +453,8 @@ function MedicineDashboard() {
       const extraction = await extractLeaflet(upload.id);
       if (extraction.status === "failed") {
         setError(extraction.error_message || "Leaflet extraction failed.");
+      } else if (extraction.status === "needs_review") {
+        setSelectedLeafletExtraction(extraction);
       }
       await loadLeafletsForMedication(upload.medication_id);
     } catch (caughtError) {
@@ -432,6 +465,57 @@ function MedicineDashboard() {
       );
     } finally {
       setActiveLeafletExtractionId(null);
+    }
+  }
+
+  async function handleReviewLeaflet(upload: LeafletUpload) {
+    setError("");
+    setActiveLeafletReviewId(upload.id);
+    setIsLeafletReviewLoading(true);
+
+    try {
+      const extraction = await getLatestLeafletExtraction(upload.id);
+      if (extraction.status !== "needs_review" || !extraction.parsed_output) {
+        setError("This leaflet does not have reviewable extraction output.");
+        setSelectedLeafletExtraction(null);
+        return;
+      }
+      setSelectedLeafletExtraction(extraction);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not open leaflet review."
+      );
+    } finally {
+      setActiveLeafletReviewId(null);
+      setIsLeafletReviewLoading(false);
+    }
+  }
+
+  async function handleApproveLeafletGuidance(
+    extraction: LeafletExtraction,
+    guidance: LeafletGuidancePayload
+  ) {
+    setError("");
+    setIsLeafletApproving(true);
+
+    try {
+      await approveLeafletExtraction(extraction.leaflet_upload_id, {
+        extraction_id: extraction.id,
+        ...guidance
+      });
+      setSelectedLeafletExtraction(null);
+      await loadLeafletsForMedication(extraction.medication_id);
+      await loadLeafletGuidanceForMedication(extraction.medication_id);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Could not approve leaflet guidance."
+      );
+    } finally {
+      setIsLeafletApproving(false);
     }
   }
 
@@ -577,10 +661,15 @@ function MedicineDashboard() {
                 : undefined
             }
             leafletUploads={leafletUploads}
+            leafletGuidance={leafletGuidance}
+            selectedLeafletExtraction={selectedLeafletExtraction}
             schedules={schedules}
             activeLeafletExtractionId={activeLeafletExtractionId}
+            activeLeafletReviewId={activeLeafletReviewId}
+            isLeafletApproving={isLeafletApproving}
             isScheduleSaving={isScheduleSaving}
             isLeafletLoading={isLeafletLoading}
+            isLeafletReviewLoading={isLeafletReviewLoading}
             isLeafletUploading={isLeafletUploading}
             onAddSchedule={handleAddSchedule}
             onCreate={() => setMode("new")}
@@ -590,7 +679,10 @@ function MedicineDashboard() {
               setSelectedMedicationId(medication.id);
               setMode("edit");
             }}
+            onApproveLeafletGuidance={handleApproveLeafletGuidance}
+            onCloseLeafletReview={() => setSelectedLeafletExtraction(null)}
             onExtractLeaflet={handleExtractLeaflet}
+            onReviewLeaflet={handleReviewLeaflet}
             onUploadLeaflet={handleUploadLeaflet}
           />
         )}

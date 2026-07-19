@@ -8,6 +8,7 @@ from .database import get_connection
 from .models import (
     DOSE_LOG_COLUMNS,
     LEAFLET_EXTRACTION_COLUMNS,
+    LEAFLET_GUIDANCE_COLUMNS,
     LEAFLET_UPLOAD_COLUMNS,
     MEDICATION_COLUMNS,
     SCHEDULE_COLUMNS,
@@ -131,6 +132,15 @@ def row_to_leaflet_extraction(row: Row) -> dict[str, Any]:
         except json.JSONDecodeError:
             extraction["parsed_output"] = None
     return extraction
+
+
+def row_to_leaflet_guidance(row: Row) -> dict[str, Any]:
+    guidance = {column: row[column] for column in LEAFLET_GUIDANCE_COLUMNS}
+    try:
+        guidance["guidance"] = json.loads(guidance.pop("reviewed_output"))
+    except json.JSONDecodeError:
+        guidance["guidance"] = {}
+    return guidance
 
 
 def schedule_time_to_datetime(target_date: date, schedule_time: str) -> datetime:
@@ -831,6 +841,146 @@ def get_leaflet_extraction(
         return None
 
     return row_to_leaflet_extraction(row)
+
+
+def get_latest_leaflet_extraction_for_upload(
+    database_url: str, leaflet_id: int
+) -> dict[str, Any] | None:
+    if get_leaflet_upload(database_url, leaflet_id) is None:
+        return None
+
+    with get_connection(database_url) as connection:
+        row = connection.execute(
+            """
+            SELECT id, leaflet_upload_id, medication_id, provider, status,
+                   source_text, raw_model_output, parsed_output, error_message,
+                   created_at, updated_at
+            FROM leaflet_extractions
+            WHERE leaflet_upload_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """,
+            (leaflet_id,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return row_to_leaflet_extraction(row)
+
+
+def list_leaflet_guidance_for_medication(
+    database_url: str, medication_id: int
+) -> list[dict[str, Any]] | None:
+    if get_medication(database_url, medication_id) is None:
+        return None
+
+    with get_connection(database_url) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, medication_id, leaflet_upload_id, leaflet_extraction_id,
+                   reviewed_output, created_at, updated_at
+            FROM leaflet_guidance
+            WHERE medication_id = ?
+            ORDER BY updated_at DESC, id DESC
+            """,
+            (medication_id,),
+        ).fetchall()
+
+    return [row_to_leaflet_guidance(row) for row in rows]
+
+
+def approve_leaflet_guidance(
+    database_url: str,
+    leaflet_id: int,
+    extraction_id: int,
+    reviewed_output: dict[str, Any],
+) -> dict[str, Any] | None:
+    timestamp = now_iso()
+    reviewed_json = json.dumps(reviewed_output, ensure_ascii=False)
+
+    with get_connection(database_url) as connection:
+        extraction = connection.execute(
+            """
+            SELECT id, leaflet_upload_id, medication_id, status, parsed_output
+            FROM leaflet_extractions
+            WHERE id = ?
+            """,
+            (extraction_id,),
+        ).fetchone()
+        if extraction is None or extraction["leaflet_upload_id"] != leaflet_id:
+            return None
+        if extraction["status"] != "needs_review" or not extraction["parsed_output"]:
+            raise ValueError("Only needs_review extractions can be approved.")
+
+        cursor = connection.execute(
+            """
+            INSERT INTO leaflet_guidance (
+                medication_id, leaflet_upload_id, leaflet_extraction_id,
+                reviewed_output, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(leaflet_extraction_id) DO UPDATE SET
+                reviewed_output = excluded.reviewed_output,
+                updated_at = excluded.updated_at
+            """,
+            (
+                extraction["medication_id"],
+                leaflet_id,
+                extraction_id,
+                reviewed_json,
+                timestamp,
+                timestamp,
+            ),
+        )
+        guidance_id = int(cursor.lastrowid)
+        connection.execute(
+            """
+            UPDATE leaflet_extractions
+            SET status = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            ("approved", timestamp, extraction_id),
+        )
+        connection.execute(
+            """
+            UPDATE leaflet_uploads
+            SET status = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            ("approved", timestamp, leaflet_id),
+        )
+        connection.commit()
+
+    if guidance_id == 0:
+        with get_connection(database_url) as connection:
+            row = connection.execute(
+                """
+                SELECT id, medication_id, leaflet_upload_id,
+                       leaflet_extraction_id, reviewed_output, created_at,
+                       updated_at
+                FROM leaflet_guidance
+                WHERE leaflet_extraction_id = ?
+                """,
+                (extraction_id,),
+            ).fetchone()
+    else:
+        with get_connection(database_url) as connection:
+            row = connection.execute(
+                """
+                SELECT id, medication_id, leaflet_upload_id,
+                       leaflet_extraction_id, reviewed_output, created_at,
+                       updated_at
+                FROM leaflet_guidance
+                WHERE id = ?
+                """,
+                (guidance_id,),
+            ).fetchone()
+
+    if row is None:
+        raise RuntimeError("Approved leaflet guidance could not be loaded.")
+
+    return row_to_leaflet_guidance(row)
 
 
 def create_leaflet_extraction_attempt(

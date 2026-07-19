@@ -114,6 +114,61 @@ export interface LeafletUpload {
 }
 
 export type LeafletExtractionProvider = "mock" | "local_ocr" | "openai";
+export type LeafletConfidence = "high" | "medium" | "low";
+export type LeafletWarningSeverity = "info" | "caution" | "urgent";
+
+export interface MedicineNameExtraction {
+  value: string | null;
+  source_snippet: string | null;
+  confidence: LeafletConfidence;
+}
+
+export interface ActiveIngredientExtraction {
+  name: string;
+  strength: string | null;
+  source_snippet: string;
+  confidence: LeafletConfidence;
+}
+
+export interface UsageInstructionExtraction {
+  instruction: string;
+  source_snippet: string;
+  confidence: LeafletConfidence;
+}
+
+export interface WarningExtraction {
+  warning: string;
+  severity: LeafletWarningSeverity;
+  source_snippet: string;
+  confidence: LeafletConfidence;
+}
+
+export interface TextClaimExtraction {
+  text: string;
+  source_snippet: string;
+  confidence: LeafletConfidence;
+}
+
+export interface LeafletGuidancePayload {
+  medicine_name: MedicineNameExtraction;
+  active_ingredients: ActiveIngredientExtraction[];
+  usage_instructions: UsageInstructionExtraction[];
+  warnings: WarningExtraction[];
+  contraindications: TextClaimExtraction[];
+  side_effects: TextClaimExtraction[];
+  storage: TextClaimExtraction[];
+  plain_language_summary: string;
+  translated_summary: string;
+  review_notes: string[];
+}
+
+export interface LeafletParsedOutput extends LeafletGuidancePayload {
+  needs_review: true;
+}
+
+export interface LeafletApprovedGuidance extends LeafletGuidancePayload {
+  needs_review: false;
+}
 
 export interface LeafletExtraction {
   id: number;
@@ -123,8 +178,22 @@ export interface LeafletExtraction {
   status: LeafletExtractionStatus;
   source_text: string;
   raw_model_output: string;
-  parsed_output: unknown | null;
+  parsed_output: LeafletParsedOutput | null;
   error_message: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface LeafletGuidance {
+  id: number;
+  medication_id: number;
+  leaflet_upload_id: number;
+  leaflet_extraction_id: number;
+  guidance: LeafletApprovedGuidance;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeafletGuidanceApprovalPayload extends LeafletGuidancePayload {
+  extraction_id: number;
 }

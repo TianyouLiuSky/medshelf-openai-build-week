@@ -9,9 +9,11 @@ import type {
 interface LeafletUploadPanelProps {
   uploads: LeafletUpload[];
   activeExtractionId: number | null;
+  activeReviewId: number | null;
   isLoading: boolean;
   isUploading: boolean;
   onExtract: (upload: LeafletUpload) => Promise<void>;
+  onReview: (upload: LeafletUpload) => Promise<void>;
   onUpload: (file: File) => Promise<void>;
 }
 
@@ -58,9 +60,11 @@ function formatDateTime(value: string): string {
 function LeafletUploadPanel({
   uploads,
   activeExtractionId,
+  activeReviewId,
   isLoading,
   isUploading,
   onExtract,
+  onReview,
   onUpload
 }: LeafletUploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -155,6 +159,16 @@ function LeafletUploadPanel({
                       : upload.status === "failed"
                         ? "Retry"
                         : "Extract"}
+                  </button>
+                )}
+                {upload.status === "needs_review" && (
+                  <button
+                    className="primary-button compact-button"
+                    type="button"
+                    disabled={activeReviewId !== null}
+                    onClick={() => void onReview(upload)}
+                  >
+                    {activeReviewId === upload.id ? "Opening" : "Review"}
                   </button>
                 )}
               </div>

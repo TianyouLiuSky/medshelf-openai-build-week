@@ -1,7 +1,12 @@
+import ApprovedGuidancePanel from "./ApprovedGuidancePanel";
 import LeafletUploadPanel from "./LeafletUploadPanel";
+import LeafletReviewPanel from "./LeafletReviewPanel";
 import ScheduleForm from "./ScheduleForm";
 import StatusBadge from "./StatusBadge";
 import type {
+  LeafletExtraction,
+  LeafletGuidance,
+  LeafletGuidancePayload,
   LeafletUpload,
   Medication,
   RestockSuggestion,
@@ -13,17 +18,28 @@ interface MedicineDetailProps {
   medication: Medication | null;
   restockSuggestion?: RestockSuggestion;
   leafletUploads: LeafletUpload[];
+  leafletGuidance: LeafletGuidance[];
+  selectedLeafletExtraction: LeafletExtraction | null;
   schedules: Schedule[];
   activeLeafletExtractionId: number | null;
+  activeLeafletReviewId: number | null;
+  isLeafletApproving: boolean;
   isScheduleSaving: boolean;
   isLeafletLoading: boolean;
+  isLeafletReviewLoading: boolean;
   isLeafletUploading: boolean;
   onAddSchedule: (schedule: SchedulePayload) => Promise<void>;
   onCreate: () => void;
   onDelete: (medication: Medication) => void;
   onDeleteSchedule: (schedule: Schedule) => void;
   onEdit: (medication: Medication) => void;
+  onApproveLeafletGuidance: (
+    extraction: LeafletExtraction,
+    guidance: LeafletGuidancePayload
+  ) => Promise<void>;
+  onCloseLeafletReview: () => void;
   onExtractLeaflet: (upload: LeafletUpload) => Promise<void>;
+  onReviewLeaflet: (upload: LeafletUpload) => Promise<void>;
   onUploadLeaflet: (file: File) => Promise<void>;
 }
 
@@ -87,17 +103,25 @@ function MedicineDetail({
   medication,
   restockSuggestion,
   leafletUploads,
+  leafletGuidance,
+  selectedLeafletExtraction,
   schedules,
   activeLeafletExtractionId,
+  activeLeafletReviewId,
+  isLeafletApproving,
   isScheduleSaving,
   isLeafletLoading,
+  isLeafletReviewLoading,
   isLeafletUploading,
   onAddSchedule,
   onCreate,
   onDelete,
   onDeleteSchedule,
   onEdit,
+  onApproveLeafletGuidance,
+  onCloseLeafletReview,
   onExtractLeaflet,
+  onReviewLeaflet,
   onUploadLeaflet
 }: MedicineDetailProps) {
   if (!medication) {
@@ -202,13 +226,25 @@ function MedicineDetail({
         <p>{medication.notes || "No notes recorded."}</p>
       </div>
 
+      <ApprovedGuidancePanel guidance={leafletGuidance} />
+
       <LeafletUploadPanel
         uploads={leafletUploads}
         activeExtractionId={activeLeafletExtractionId}
+        activeReviewId={activeLeafletReviewId}
         isLoading={isLeafletLoading}
         isUploading={isLeafletUploading}
         onExtract={onExtractLeaflet}
+        onReview={onReviewLeaflet}
         onUpload={onUploadLeaflet}
+      />
+
+      <LeafletReviewPanel
+        extraction={selectedLeafletExtraction}
+        isLoading={isLeafletReviewLoading}
+        isApproving={isLeafletApproving}
+        onApprove={onApproveLeafletGuidance}
+        onCancel={onCloseLeafletReview}
       />
 
       <div className="schedule-panel">

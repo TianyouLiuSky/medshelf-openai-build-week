@@ -157,3 +157,75 @@ def test_extract_rejects_unknown_provider(tmp_path, monkeypatch) -> None:
         )
         assert uploads_response.status_code == 200
         assert uploads_response.json()[0]["status"] == "uploaded"
+
+
+def test_approve_leaflet_extraction_saves_reviewed_guidance(
+    tmp_path, monkeypatch
+) -> None:
+    with configured_client(tmp_path, monkeypatch) as client:
+        medication = create_test_medication(client)
+        upload = upload_text_leaflet(client, medication["id"])
+        extraction_response = client.post(f"/api/leaflets/{upload['id']}/extract")
+        assert extraction_response.status_code == 200
+        extraction = extraction_response.json()
+        reviewed = extraction["parsed_output"]
+        reviewed.pop("needs_review")
+        reviewed["medicine_name"]["value"] = "Reviewed Relief Tablet"
+        reviewed["plain_language_summary"] = "Reviewed summary for the demo."
+        reviewed["warnings"] = []
+
+        approve_response = client.post(
+            f"/api/leaflets/{upload['id']}/approve",
+            json={"extraction_id": extraction["id"], **reviewed},
+        )
+
+        assert approve_response.status_code == 200
+        guidance = approve_response.json()
+        assert guidance["medication_id"] == medication["id"]
+        assert guidance["leaflet_upload_id"] == upload["id"]
+        assert guidance["leaflet_extraction_id"] == extraction["id"]
+        assert guidance["guidance"]["needs_review"] is False
+        assert guidance["guidance"]["medicine_name"]["value"] == (
+            "Reviewed Relief Tablet"
+        )
+        assert guidance["guidance"]["warnings"] == []
+
+        guidance_response = client.get(
+            f"/api/medications/{medication['id']}/leaflet-guidance"
+        )
+        assert guidance_response.status_code == 200
+        assert guidance_response.json()[0]["id"] == guidance["id"]
+
+        uploads_response = client.get(
+            f"/api/medications/{medication['id']}/leaflets"
+        )
+        assert uploads_response.status_code == 200
+        assert uploads_response.json()[0]["status"] == "approved"
+
+        latest_response = client.get(f"/api/leaflets/{upload['id']}/extraction")
+        assert latest_response.status_code == 200
+        assert latest_response.json()["status"] == "approved"
+
+
+def test_approve_rejects_non_review_extraction(tmp_path, monkeypatch) -> None:
+    with configured_client(tmp_path, monkeypatch) as client:
+        medication = create_test_medication(client)
+        upload = upload_text_leaflet(client, medication["id"])
+        extraction_response = client.post(f"/api/leaflets/{upload['id']}/extract")
+        assert extraction_response.status_code == 200
+        extraction = extraction_response.json()
+        reviewed = extraction["parsed_output"]
+        reviewed.pop("needs_review")
+
+        first_response = client.post(
+            f"/api/leaflets/{upload['id']}/approve",
+            json={"extraction_id": extraction["id"], **reviewed},
+        )
+        assert first_response.status_code == 200
+
+        second_response = client.post(
+            f"/api/leaflets/{upload['id']}/approve",
+            json={"extraction_id": extraction["id"], **reviewed},
+        )
+
+        assert second_response.status_code == 400

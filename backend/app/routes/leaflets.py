@@ -4,14 +4,23 @@ from urllib.parse import unquote
 from fastapi import APIRouter, Header, HTTPException, Request, status
 
 from ..repository import (
+    approve_leaflet_guidance,
     complete_leaflet_extraction,
     create_leaflet_extraction_attempt,
     create_leaflet_upload,
+    get_latest_leaflet_extraction_for_upload,
     get_medication,
     get_leaflet_upload,
+    list_leaflet_guidance_for_medication,
     list_leaflet_uploads_for_medication,
 )
-from ..schemas import LeafletExtractionRead, LeafletUploadRead
+from ..schemas import (
+    LeafletApprovedGuidance,
+    LeafletExtractionRead,
+    LeafletGuidanceApproveRequest,
+    LeafletGuidanceRead,
+    LeafletUploadRead,
+)
 from ..services.ai_extraction import (
     ExtractionProviderError,
     SUPPORTED_PROVIDERS,
@@ -38,6 +47,19 @@ def read_leaflet_uploads(request: Request, medication_id: int) -> list[dict]:
     if uploads is None:
         raise HTTPException(status_code=404, detail="Medication not found.")
     return uploads
+
+
+@router.get(
+    "/api/medications/{medication_id}/leaflet-guidance",
+    response_model=list[LeafletGuidanceRead],
+)
+def read_leaflet_guidance(request: Request, medication_id: int) -> list[dict]:
+    guidance = list_leaflet_guidance_for_medication(
+        database_url_from_request(request), medication_id
+    )
+    if guidance is None:
+        raise HTTPException(status_code=404, detail="Medication not found.")
+    return guidance
 
 
 @router.post(
@@ -86,6 +108,22 @@ async def upload_leaflet(
         raise HTTPException(status_code=404, detail="Medication not found.")
 
     return upload
+
+
+@router.get(
+    "/api/leaflets/{leaflet_id}/extraction",
+    response_model=LeafletExtractionRead,
+)
+def read_latest_leaflet_extraction(request: Request, leaflet_id: int) -> dict:
+    database_url = database_url_from_request(request)
+    if get_leaflet_upload(database_url, leaflet_id) is None:
+        raise HTTPException(status_code=404, detail="Leaflet upload not found.")
+
+    extraction = get_latest_leaflet_extraction_for_upload(database_url, leaflet_id)
+    if extraction is None:
+        raise HTTPException(status_code=404, detail="Leaflet extraction not found.")
+
+    return extraction
 
 
 @router.post(
@@ -154,3 +192,38 @@ def extract_leaflet(
         )
 
     return completed
+
+
+@router.post(
+    "/api/leaflets/{leaflet_id}/approve",
+    response_model=LeafletGuidanceRead,
+)
+def approve_leaflet(
+    request: Request,
+    leaflet_id: int,
+    review: LeafletGuidanceApproveRequest,
+) -> dict:
+    database_url = database_url_from_request(request)
+    if get_leaflet_upload(database_url, leaflet_id) is None:
+        raise HTTPException(status_code=404, detail="Leaflet upload not found.")
+
+    if hasattr(review, "model_dump"):
+        review_data = review.model_dump(exclude={"extraction_id"})
+    else:
+        review_data = review.dict(exclude={"extraction_id"})
+    approved_guidance = LeafletApprovedGuidance(**review_data)
+
+    try:
+        guidance = approve_leaflet_guidance(
+            database_url,
+            leaflet_id,
+            review.extraction_id,
+            model_to_dict(approved_guidance),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if guidance is None:
+        raise HTTPException(status_code=404, detail="Leaflet extraction not found.")
+
+    return guidance
