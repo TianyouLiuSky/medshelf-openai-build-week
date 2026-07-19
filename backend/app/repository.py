@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime, time, timezone
 from sqlite3 import Row
 from typing import Any
+from urllib.parse import quote_plus
 
 from .database import get_connection
 from .models import DOSE_LOG_COLUMNS, MEDICATION_COLUMNS, SCHEDULE_COLUMNS
@@ -131,6 +132,104 @@ def schedule_is_active(schedule: dict[str, Any], target_date: date) -> bool:
     )
 
 
+def scheduled_quantity_for_date(
+    medication: dict[str, Any], schedules: list[dict[str, Any]], target_date: date
+) -> float:
+    dose_amount = medication["dose_amount"] or 0
+    if dose_amount <= 0:
+        return 0
+
+    daily_doses = sum(
+        len(schedule["times"])
+        for schedule in schedules
+        if schedule_is_active(schedule, target_date)
+    )
+    return daily_doses * dose_amount
+
+
+def estimate_average_daily_usage(
+    medication: dict[str, Any],
+    schedules: list[dict[str, Any]],
+    target_date: date | None = None,
+    horizon_days: int = 28,
+) -> float | None:
+    start_date = target_date or date.today()
+    total_usage = sum(
+        scheduled_quantity_for_date(
+            medication,
+            schedules,
+            date.fromordinal(start_date.toordinal() + day_offset),
+        )
+        for day_offset in range(horizon_days)
+    )
+
+    if total_usage <= 0:
+        return None
+
+    return round(total_usage / horizon_days, 2)
+
+
+def estimate_days_remaining(
+    medication: dict[str, Any],
+    schedules: list[dict[str, Any]],
+    target_date: date | None = None,
+    max_days: int = 365,
+) -> float | None:
+    start_date = target_date or date.today()
+    quantity_remaining = float(medication["quantity_remaining"])
+
+    if quantity_remaining <= 0:
+        return 0
+
+    if (medication["dose_amount"] or 0) <= 0:
+        return None
+
+    for day_offset in range(max_days):
+        current_date = date.fromordinal(start_date.toordinal() + day_offset)
+        daily_quantity = scheduled_quantity_for_date(
+            medication, schedules, current_date
+        )
+        if daily_quantity <= 0:
+            continue
+
+        if quantity_remaining <= daily_quantity:
+            return round(day_offset + (quantity_remaining / daily_quantity), 1)
+
+        quantity_remaining -= daily_quantity
+
+    return None
+
+
+def apply_inventory_estimates(
+    medication: dict[str, Any], schedules: list[dict[str, Any]]
+) -> dict[str, Any]:
+    medication["daily_usage_estimate"] = estimate_average_daily_usage(
+        medication, schedules
+    )
+    medication["days_remaining_estimate"] = estimate_days_remaining(
+        medication, schedules
+    )
+    return medication
+
+
+def list_schedules_for_inventory(
+    database_url: str, medication_id: int
+) -> list[dict[str, Any]]:
+    with get_connection(database_url) as connection:
+        rows = connection.execute(
+            """
+            SELECT id, medication_id, times, days_of_week, start_date, end_date,
+                   created_at, updated_at
+            FROM schedules
+            WHERE medication_id = ?
+            ORDER BY start_date ASC, id ASC
+            """,
+            (medication_id,),
+        ).fetchall()
+
+    return [row_to_schedule(row) for row in rows]
+
+
 def list_medications(database_url: str) -> list[dict[str, Any]]:
     with get_connection(database_url) as connection:
         rows = connection.execute(
@@ -143,7 +242,13 @@ def list_medications(database_url: str) -> list[dict[str, Any]]:
             """
         ).fetchall()
 
-    return [row_to_medication(row) for row in rows]
+    medications = [row_to_medication(row) for row in rows]
+    return [
+        apply_inventory_estimates(
+            medication, list_schedules_for_inventory(database_url, medication["id"])
+        )
+        for medication in medications
+    ]
 
 
 def get_medication(database_url: str, medication_id: int) -> dict[str, Any] | None:
@@ -162,7 +267,10 @@ def get_medication(database_url: str, medication_id: int) -> dict[str, Any] | No
     if row is None:
         return None
 
-    return row_to_medication(row)
+    medication = row_to_medication(row)
+    return apply_inventory_estimates(
+        medication, list_schedules_for_inventory(database_url, medication_id)
+    )
 
 
 def create_medication(
@@ -238,19 +346,7 @@ def list_schedules_for_medication(
     if get_medication(database_url, medication_id) is None:
         return None
 
-    with get_connection(database_url) as connection:
-        rows = connection.execute(
-            """
-            SELECT id, medication_id, times, days_of_week, start_date, end_date,
-                   created_at, updated_at
-            FROM schedules
-            WHERE medication_id = ?
-            ORDER BY start_date ASC, id ASC
-            """,
-            (medication_id,),
-        ).fetchall()
-
-    return [row_to_schedule(row) for row in rows]
+    return list_schedules_for_inventory(database_url, medication_id)
 
 
 def get_schedule(database_url: str, schedule_id: int) -> dict[str, Any] | None:
@@ -555,6 +651,56 @@ def get_today_dashboard(
         "date": dashboard_date,
         "generated_at": generated_at,
         "doses": doses,
+    }
+
+
+def build_restock_suggestion(
+    database_url: str, medication_id: int, region: str = ""
+) -> dict[str, Any] | None:
+    medication = get_medication(database_url, medication_id)
+    if medication is None:
+        return None
+
+    search_parts = [
+        medication["name"],
+        medication["strength"],
+        medication["form"],
+        medication["quantity_unit"],
+        "pharmacy",
+        region.strip(),
+    ]
+    search_query = " ".join(part for part in search_parts if part)
+    encoded_query = quote_plus(search_query)
+    maps_query = quote_plus(f"{medication['name']} pharmacy {region.strip()}".strip())
+
+    return {
+        "medication_id": medication["id"],
+        "medication_name": medication["name"],
+        "is_low_stock": medication["is_low_stock"],
+        "quantity_remaining": medication["quantity_remaining"],
+        "quantity_unit": medication["quantity_unit"],
+        "low_stock_threshold": medication["low_stock_threshold"],
+        "daily_usage_estimate": medication["daily_usage_estimate"],
+        "days_remaining_estimate": medication["days_remaining_estimate"],
+        "search_query": search_query,
+        "links": [
+            {
+                "label": "Google search",
+                "url": f"https://www.google.com/search?q={encoded_query}",
+            },
+            {
+                "label": "Pharmacy search",
+                "url": f"https://www.google.com/search?q={encoded_query}+near+me",
+            },
+            {
+                "label": "Map search",
+                "url": f"https://www.google.com/maps/search/?api=1&query={maps_query}",
+            },
+        ],
+        "safety_note": (
+            "Use these links to find restock options, then confirm availability, "
+            "substitution, and dosing questions with a pharmacist or clinician."
+        ),
     }
 
 

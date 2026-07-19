@@ -5,6 +5,7 @@ import {
   createMedication,
   deleteSchedule as deleteScheduleRequest,
   deleteMedication,
+  getRestockSuggestion,
   getTodayDashboard,
   listMedications,
   listSchedules,
@@ -15,12 +16,14 @@ import {
 import MedicineDetail from "../components/MedicineDetail";
 import MedicationForm from "../components/MedicationForm";
 import MedicineList from "../components/MedicineList";
+import LowStockPanel from "../components/LowStockPanel";
 import StatusBadge from "../components/StatusBadge";
 import TodayDashboardPanel from "../components/TodayDashboard";
 import type {
   DoseActionStatus,
   Medication,
   MedicationPayload,
+  RestockSuggestion,
   Schedule,
   SchedulePayload,
   TodayDashboard as TodayDashboardData,
@@ -41,12 +44,16 @@ function MedicineDashboard() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [todayDashboard, setTodayDashboard] =
     useState<TodayDashboardData | null>(null);
+  const [restockSuggestions, setRestockSuggestions] = useState<
+    Record<number, RestockSuggestion>
+  >({});
   const [selectedMedicationId, setSelectedMedicationId] = useState<number | null>(
     null
   );
   const [mode, setMode] = useState<WorkspaceMode>("detail");
   const [isLoading, setIsLoading] = useState(true);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
+  const [isRestockLoading, setIsRestockLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isScheduleSaving, setIsScheduleSaving] = useState(false);
   const [activeDoseKey, setActiveDoseKey] = useState<string | null>(null);
@@ -144,6 +151,60 @@ function MedicineDashboard() {
 
     void loadSchedulesForMedication(selectedMedicationId);
   }, [selectedMedicationId]);
+
+  useEffect(() => {
+    const lowStockMedications = medications.filter(
+      (medication) => medication.is_low_stock
+    );
+
+    if (lowStockMedications.length === 0) {
+      setRestockSuggestions({});
+      setIsRestockLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsRestockLoading(true);
+
+    async function loadRestockSuggestions() {
+      try {
+        const suggestions = await Promise.all(
+          lowStockMedications.map((medication) =>
+            getRestockSuggestion(medication.id)
+          )
+        );
+
+        if (!isCancelled) {
+          setRestockSuggestions(
+            Object.fromEntries(
+              suggestions.map((suggestion) => [
+                suggestion.medication_id,
+                suggestion
+              ])
+            )
+          );
+        }
+      } catch (caughtError) {
+        if (!isCancelled) {
+          setError(
+            caughtError instanceof Error
+              ? caughtError.message
+              : "Could not load restock links."
+          );
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsRestockLoading(false);
+        }
+      }
+    }
+
+    void loadRestockSuggestions();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [medications]);
 
   async function handleCreate(payload: MedicationPayload) {
     setIsSaving(true);
@@ -379,6 +440,16 @@ function MedicineDashboard() {
         onDoseAction={handleDoseAction}
       />
 
+      <LowStockPanel
+        medications={medications}
+        suggestions={restockSuggestions}
+        isLoading={isRestockLoading}
+        onSelectMedication={(id) => {
+          setSelectedMedicationId(id);
+          setMode("detail");
+        }}
+      />
+
       <section className="workspace-grid">
         <aside className="list-panel" aria-labelledby="medicine-list-title">
           <div className="section-heading">
@@ -427,6 +498,11 @@ function MedicineDashboard() {
         {mode === "detail" && (
           <MedicineDetail
             medication={selectedMedication}
+            restockSuggestion={
+              selectedMedication
+                ? restockSuggestions[selectedMedication.id]
+                : undefined
+            }
             schedules={schedules}
             isScheduleSaving={isScheduleSaving}
             onAddSchedule={handleAddSchedule}

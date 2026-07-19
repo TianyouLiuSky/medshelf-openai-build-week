@@ -11,6 +11,8 @@ export interface Medication {
   low_stock_threshold: number | null;
   notes: string;
   is_low_stock: boolean;
+  daily_usage_estimate: number | null;
+  days_remaining_estimate: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -70,4 +72,23 @@ export interface TodayDashboard {
   date: string;
   generated_at: string;
   doses: TodayDose[];
+}
+
+export interface RestockLink {
+  label: string;
+  url: string;
+}
+
+export interface RestockSuggestion {
+  medication_id: number;
+  medication_name: string;
+  is_low_stock: boolean;
+  quantity_remaining: number;
+  quantity_unit: string;
+  low_stock_threshold: number | null;
+  daily_usage_estimate: number | null;
+  days_remaining_estimate: number | null;
+  search_query: string;
+  links: RestockLink[];
+  safety_note: string;
 }

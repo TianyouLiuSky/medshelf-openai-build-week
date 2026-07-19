@@ -1,9 +1,15 @@
 import ScheduleForm from "./ScheduleForm";
 import StatusBadge from "./StatusBadge";
-import type { Medication, Schedule, SchedulePayload } from "../types/medicine";
+import type {
+  Medication,
+  RestockSuggestion,
+  Schedule,
+  SchedulePayload
+} from "../types/medicine";
 
 interface MedicineDetailProps {
   medication: Medication | null;
+  restockSuggestion?: RestockSuggestion;
   schedules: Schedule[];
   isScheduleSaving: boolean;
   onAddSchedule: (schedule: SchedulePayload) => Promise<void>;
@@ -29,6 +35,16 @@ function formatThreshold(medication: Medication): string {
   }
 
   return `${medication.low_stock_threshold} ${medication.quantity_unit}`;
+}
+
+function formatEstimate(value: number | null, unit: string): string {
+  if (value === null) {
+    return "Not enough schedule data";
+  }
+
+  return `${new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2
+  }).format(value)} ${unit}`;
 }
 
 function stockBadge(medication: Medication) {
@@ -61,6 +77,7 @@ function formatScheduleRange(schedule: Schedule): string {
 
 function MedicineDetail({
   medication,
+  restockSuggestion,
   schedules,
   isScheduleSaving,
   onAddSchedule,
@@ -119,7 +136,44 @@ function MedicineDetail({
           <span>Low-stock threshold</span>
           <strong>{formatThreshold(medication)}</strong>
         </div>
+        <div>
+          <span>Daily usage estimate</span>
+          <strong>
+            {formatEstimate(
+              medication.daily_usage_estimate,
+              medication.quantity_unit
+            )}
+          </strong>
+        </div>
+        <div>
+          <span>Days remaining</span>
+          <strong>
+            {formatEstimate(medication.days_remaining_estimate, "days")}
+          </strong>
+        </div>
       </div>
+
+      {medication.is_low_stock && restockSuggestion && (
+        <div className="restock-panel">
+          <div>
+            <h3>Restock Links</h3>
+            <p>{restockSuggestion.safety_note}</p>
+          </div>
+          <div className="restock-actions">
+            {restockSuggestion.links.map((link) => (
+              <a
+                className="restock-link"
+                href={link.url}
+                key={link.label}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="safety-strip">
         <strong>Follow clinician or pharmacist directions.</strong>

@@ -79,6 +79,8 @@ class MedicationUpdate(BaseModel):
 class MedicationRead(MedicationBase):
     id: int
     is_low_stock: bool
+    daily_usage_estimate: Optional[float] = None
+    days_remaining_estimate: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 
@@ -201,6 +203,25 @@ class TodayDashboardResponse(BaseModel):
     date: date
     generated_at: datetime
     doses: list[TodayDoseRead]
+
+
+class RestockLink(BaseModel):
+    label: str
+    url: str
+
+
+class RestockSuggestionRead(BaseModel):
+    medication_id: int
+    medication_name: str
+    is_low_stock: bool
+    quantity_remaining: float
+    quantity_unit: str
+    low_stock_threshold: Optional[float]
+    daily_usage_estimate: Optional[float]
+    days_remaining_estimate: Optional[float]
+    search_query: str
+    links: list[RestockLink]
+    safety_note: str
 
 
 class DemoSeedResponse(BaseModel):

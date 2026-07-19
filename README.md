@@ -109,6 +109,7 @@ On first startup, the backend creates the SQLite database and loads demo medicin
 - `DELETE /api/schedules/{id}`
 - `POST /api/medications/{id}/doses`
 - `GET /api/dashboard/today?date=YYYY-MM-DD`
+- `GET /api/restock/suggestions?medication_id={id}&region=optional`
 - `POST /api/demo/seed`
 
 ### Checks

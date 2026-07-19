@@ -7,10 +7,22 @@ interface MedicineListProps {
   onSelect: (id: number) => void;
 }
 
-function formatQuantity(medication: Medication): string {
+function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, {
     maximumFractionDigits: 2
-  }).format(medication.quantity_remaining);
+  }).format(value);
+}
+
+function formatQuantity(medication: Medication): string {
+  return formatNumber(medication.quantity_remaining);
+}
+
+function formatDaysRemaining(medication: Medication): string {
+  if (medication.days_remaining_estimate === null) {
+    return "Days remaining unavailable";
+  }
+
+  return `${formatNumber(medication.days_remaining_estimate)} days remaining`;
 }
 
 function medicineStatus(medication: Medication) {
@@ -61,6 +73,9 @@ function MedicineList({
               </span>
               <span className="medicine-list-stock">
                 {formatQuantity(medication)} {medication.quantity_unit} left
+              </span>
+              <span className="medicine-list-days">
+                {formatDaysRemaining(medication)}
               </span>
             </button>
           </li>

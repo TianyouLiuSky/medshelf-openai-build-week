@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import init_db
 from .repository import seed_demo_medications
-from .routes import dashboard, demo, doses, medications, schedules
+from .routes import dashboard, demo, doses, medications, restock, schedules
 from .settings import get_settings
 
 
@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="MedShelf API",
         summary="Backend API for the MedShelf medicine tracking MVP.",
-        version="0.3.0",
+        version="0.4.0",
         lifespan=lifespan,
     )
     app.state.settings = settings
@@ -41,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(schedules.router)
     app.include_router(doses.router)
     app.include_router(dashboard.router)
+    app.include_router(restock.router)
     app.include_router(demo.router)
 
     @app.get("/api/health", tags=["system"])

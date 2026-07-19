@@ -2,6 +2,7 @@ import type {
   DoseActionStatus,
   Medication,
   MedicationPayload,
+  RestockSuggestion,
   Schedule,
   SchedulePayload,
   TodayDashboard
@@ -118,4 +119,16 @@ export function recordDoseAction(
       status
     })
   });
+}
+
+export function getRestockSuggestion(
+  medicationId: number,
+  region = ""
+): Promise<RestockSuggestion> {
+  const params = new URLSearchParams({ medication_id: String(medicationId) });
+  if (region.trim()) {
+    params.set("region", region.trim());
+  }
+
+  return request<RestockSuggestion>(`/api/restock/suggestions?${params}`);
 }
