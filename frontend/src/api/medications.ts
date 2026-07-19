@@ -1,0 +1,121 @@
+import type {
+  DoseActionStatus,
+  Medication,
+  MedicationPayload,
+  Schedule,
+  SchedulePayload,
+  TodayDashboard
+} from "../types/medicine";
+
+const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+const API_BASE_URL = configuredBaseUrl.replace(/\/$/, "");
+
+interface DemoSeedResponse {
+  medications: Medication[];
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers
+    },
+    ...options
+  });
+
+  if (!response.ok) {
+    let message = response.statusText || "Request failed";
+
+    try {
+      const error = (await response.json()) as { detail?: string };
+      if (error.detail) {
+        message = error.detail;
+      }
+    } catch {
+      message = "Request failed";
+    }
+
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export function listMedications(): Promise<Medication[]> {
+  return request<Medication[]>("/api/medications");
+}
+
+export function createMedication(
+  medication: MedicationPayload
+): Promise<Medication> {
+  return request<Medication>("/api/medications", {
+    method: "POST",
+    body: JSON.stringify(medication)
+  });
+}
+
+export function updateMedication(
+  id: number,
+  medication: MedicationPayload
+): Promise<Medication> {
+  return request<Medication>(`/api/medications/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(medication)
+  });
+}
+
+export function deleteMedication(id: number): Promise<void> {
+  return request<void>(`/api/medications/${id}`, {
+    method: "DELETE"
+  });
+}
+
+export function seedDemoMedications(): Promise<Medication[]> {
+  return request<DemoSeedResponse>("/api/demo/seed", {
+    method: "POST"
+  }).then((response) => response.medications);
+}
+
+export function listSchedules(medicationId: number): Promise<Schedule[]> {
+  return request<Schedule[]>(`/api/medications/${medicationId}/schedules`);
+}
+
+export function createSchedule(
+  medicationId: number,
+  schedule: SchedulePayload
+): Promise<Schedule> {
+  return request<Schedule>(`/api/medications/${medicationId}/schedules`, {
+    method: "POST",
+    body: JSON.stringify(schedule)
+  });
+}
+
+export function deleteSchedule(id: number): Promise<void> {
+  return request<void>(`/api/schedules/${id}`, {
+    method: "DELETE"
+  });
+}
+
+export function getTodayDashboard(date: string): Promise<TodayDashboard> {
+  return request<TodayDashboard>(`/api/dashboard/today?date=${date}`);
+}
+
+export function recordDoseAction(
+  medicationId: number,
+  scheduleId: number,
+  scheduledAt: string,
+  status: DoseActionStatus
+): Promise<void> {
+  return request<void>(`/api/medications/${medicationId}/doses`, {
+    method: "POST",
+    body: JSON.stringify({
+      schedule_id: scheduleId,
+      scheduled_at: scheduledAt,
+      status
+    })
+  });
+}

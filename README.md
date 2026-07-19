@@ -54,14 +54,81 @@ The initial implementation should aim for:
 2. A working leaflet upload and AI extraction flow.
 3. A polished demo with sample medicines and sample leaflet data.
 
+## Local Development
+
+MedShelf is split into a Vite React frontend and a FastAPI backend.
+
+### Prerequisites
+
+- Node.js 20 or newer
+- npm
+- Python 3.11 or newer
+
+### Environment Setup
+
+Copy the shared example environment file before running the app:
+
+```bash
+cp .env.example .env
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite dev server runs at [http://localhost:5173](http://localhost:5173). With `VITE_API_BASE_URL` set, the frontend calls the backend directly; otherwise Vite proxies `/api` requests to the backend.
+
+### Backend
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --reload
+```
+
+The API runs at [http://127.0.0.1:8000](http://127.0.0.1:8000). The health check is available at `GET /api/health`.
+
+On first startup, the backend creates the SQLite database and loads demo medicines when `SEED_DEMO_DATA=true`.
+
+### API Routes
+
+- `GET /api/health`
+- `GET /api/medications`
+- `POST /api/medications`
+- `GET /api/medications/{id}`
+- `PATCH /api/medications/{id}`
+- `DELETE /api/medications/{id}`
+- `GET /api/medications/{id}/schedules`
+- `POST /api/medications/{id}/schedules`
+- `PATCH /api/schedules/{id}`
+- `DELETE /api/schedules/{id}`
+- `POST /api/medications/{id}/doses`
+- `GET /api/dashboard/today?date=YYYY-MM-DD`
+- `POST /api/demo/seed`
+
+### Checks
+
+```bash
+npm --prefix frontend run build
+python3 -m pytest backend
+```
+
 ## Environment Variables
 
-Copy `.env.example` into your backend environment and fill in:
+Copy `.env.example` into your local environment and fill in:
 
 ```bash
 OPENAI_API_KEY=your_api_key_here
 APP_ENV=development
 DATABASE_URL=sqlite:///./medshelf.db
+BACKEND_CORS_ORIGINS=http://localhost:5173
+SEED_DEMO_DATA=true
+VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 ## Suggested Demo Flow
@@ -73,4 +140,3 @@ DATABASE_URL=sqlite:///./medshelf.db
 5. Show AI extraction, translation, source snippets, confidence, and review.
 6. Save reviewed guidance to the medicine profile.
 7. Trigger a low-stock alert and show restock search links.
-

@@ -1,0 +1,10 @@
+{
+  "name": "medshelf",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:backend": "python3 -m pytest backend",
+    "dev:backend": "uvicorn backend.app.main:app --reload"
+  }
+}
