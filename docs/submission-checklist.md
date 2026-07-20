@@ -6,8 +6,9 @@
 - Clear README.
 - Working demo or deployment link.
 - YouTube demo video under 3 minutes.
-- Explanation of how Codex was used.
-- Explanation of how GPT-5.6 was used.
+- Explanation of how Codex was used to build and iterate on the MVP.
+- Explanation that leaflet extraction is provider-based: mock by default for the
+  local demo, with optional OpenAI extraction behind configuration.
 - Feedback submitted through `/feedback` with Codex Session ID.
 
 ## README Must Include
@@ -23,15 +24,18 @@
 ## Demo Video Script
 
 1. Introduce MedShelf in one sentence.
-2. Show dashboard with due medicines.
-3. Add a medicine and schedule.
-4. Mark a dose as taken.
-5. Show inventory update and low-stock state.
-6. Upload a medicine leaflet.
-7. Show AI extraction, translation, source snippets, and confidence.
-8. Approve guidance and attach it to the medicine.
-9. Show restock links.
-10. Close with Codex/GPT-5.6 contribution.
+2. Show the seeded dashboard with today's doses, low-stock state, days
+   remaining, and restock links.
+3. Open `Evening Allergy Tablet`, mark today's dose as taken, and show the
+   inventory count decrease.
+4. Open `Pending Leaflet Sample`, click `Review`, and show confidence labels,
+   source snippets, editable fields, and remove actions.
+5. Edit or remove one extracted item, approve the guidance, and show the
+   reviewed guidance on the medicine profile.
+6. Optionally upload `docs/fixtures/sample-leaflet.txt` if there is time to show
+   the extraction path from scratch.
+7. Close with safety positioning, the mock-default local demo, and the optional
+   OpenAI provider path.
 
 ## Judging Alignment
 
@@ -56,7 +60,11 @@ Frame the project as a bridge between medicine documentation, personal routines,
 - No secrets committed.
 - App works from a fresh clone.
 - Demo data is available.
+- Local run commands in the README are verified: `npm run setup`, `npm run dev`,
+  `npm run check`, and production-style `npm start`.
+- `docs/fixtures/sample-leaflet.txt` is available for the optional upload demo.
 - Upload failures are handled.
 - AI uncertainty is visible.
+- AI-derived guidance remains review-only until approval.
 - Medical disclaimer is visible but not overwhelming.
-
+- README, demo script, and checklist agree on the same demo flow.

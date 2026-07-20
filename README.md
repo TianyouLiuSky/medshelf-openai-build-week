@@ -1,8 +1,8 @@
 # MedShelf
 
-MedShelf is a proposed OpenAI Build Week project: a safety-first medicine tracker that helps people manage medicine schedules, remaining supply, and confusing medication leaflets.
+MedShelf is an OpenAI Build Week project: a safety-first medicine tracker that helps people manage medicine schedules, remaining supply, and confusing medication leaflets.
 
-The app is designed as a web UI / progressive web app. Users can add medicines manually, track doses, monitor low stock, and upload medicine leaflet photos or PDFs. The AI feature extracts, translates, and simplifies leaflet instructions into a reviewed care guide while preserving source snippets and uncertainty.
+The app is designed as a web UI / progressive web app. Users can add medicines manually, track doses, monitor low stock, and upload medicine leaflet files. The default local demo uses text leaflet fixtures; image OCR and PDF extraction are available only through optional providers. The AI feature extracts, translates, and simplifies leaflet instructions into a reviewed care guide while preserving source snippets and uncertainty.
 
 ## Competition Fit
 
@@ -17,9 +17,9 @@ The app is designed as a web UI / progressive web app. Users can add medicines m
 - Create dose schedules
 - Mark scheduled doses as taken, skipped, or missed
 - Track remaining quantity and low-stock warnings
-- Upload medicine leaflet images or PDFs
-- Extract key guidance from leaflet content
-- Translate and simplify instructions
+- Upload medicine leaflet files
+- Extract key guidance from text leaflet fixtures in the default demo
+- Translate and simplify instructions when using a configured extraction provider
 - Require user review before saving AI-derived medical guidance
 - Suggest restock search links when inventory is low
 
@@ -57,7 +57,9 @@ The initial implementation should aim for:
 
 ## Local Development
 
-MedShelf is split into a Vite React frontend and a FastAPI backend.
+MedShelf is split into a Vite React frontend and a FastAPI backend. The easiest
+local path is through the root npm scripts, which set up both sides and run them
+together.
 
 ### Prerequisites
 
@@ -75,30 +77,70 @@ cp .env.example .env
 
 The default `.env.example` uses mock leaflet extraction, so the main demo does
 not require OpenAI credits or a local OCR install.
+The FastAPI backend automatically reads `.env` from the repository root. The
+frontend works through the Vite `/api` proxy by default; set frontend-specific
+Vite variables in your shell or in `frontend/.env.local` only if you need them.
 
 ### Quick Start
 
-Terminal 1:
+From the repository root:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r backend/requirements.txt
-uvicorn backend.app.main:app --reload
+npm run setup
+npm run dev
 ```
 
-Terminal 2:
+Open [http://localhost:5173](http://localhost:5173). The first command creates
+`.env`, installs Python dependencies into `.venv`, and installs frontend
+dependencies. The second command starts both the FastAPI backend and Vite
+frontend together.
+
+For later local runs, use:
 
 ```bash
-npm --prefix frontend install
-npm --prefix frontend run dev
+npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173), then click `Load demo data`
-if the seeded medicines are not already visible. The button adds missing sample
-records without deleting medicines you entered manually.
+If the seeded medicines are not already visible, click `Load demo data`. The
+button adds missing sample records without deleting medicines you entered
+manually.
+
+### Recording Setup
+
+For a clean recording state after both servers are running, reset the seeded demo
+data:
+
+```bash
+npm run seed:reset
+```
+
+Refresh [http://localhost:5173](http://localhost:5173) after the reset. This
+resets the local SQLite demo database, so use it only when you want a clean
+recording state.
+
+### Production-Style Run
+
+For a single-service run that serves the built React app from FastAPI:
+
+```bash
+npm run setup
+npm run build
+npm start
+```
+
+Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Cloud platforms can set
+`PORT`, `DATABASE_URL`, `LEAFLET_UPLOAD_DIR`, and the optional extraction
+provider variables before running `npm start`.
+
+For a simple hosted deployment, use:
+
+- Build command: `npm run setup && npm run build`
+- Start command: `npm start`
+- Health check path: `/api/health`
 
 ### Frontend
+
+For frontend-only troubleshooting:
 
 ```bash
 cd frontend
@@ -106,9 +148,11 @@ npm install
 npm run dev
 ```
 
-The Vite dev server runs at [http://localhost:5173](http://localhost:5173). With `VITE_API_BASE_URL` set, the frontend calls the backend directly; otherwise Vite proxies `/api` requests to the backend.
+The Vite dev server runs at [http://localhost:5173](http://localhost:5173). By default, Vite proxies `/api` requests to the backend. If you need a custom API base URL, set `VITE_API_BASE_URL` in your shell or in `frontend/.env.local`.
 
 ### Backend
+
+For backend-only troubleshooting:
 
 ```bash
 python3 -m venv .venv
@@ -150,9 +194,9 @@ leaflet guidance record, and one pending leaflet extraction ready for review.
 
 ### Leaflet Extraction Providers
 
-- `mock`: default provider for local demos. Reads text uploads, creates conservative draft extraction records, and keeps them in `needs_review`.
-- `local_ocr`: reads text uploads directly and can run a configured OCR command such as `tesseract` for image uploads. Install the OCR tool separately if you want image OCR locally.
-- `openai`: optional provider behind `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, and `OPENAI_EXTRACTION_MODEL`. It uses structured JSON output and stores both the raw model response and validated parsed output.
+- `mock`: default provider for local demos. Reads `.txt` uploads, creates conservative draft extraction records, and keeps them in `needs_review`. It stores image/PDF uploads but does not read their contents.
+- `local_ocr`: reads text uploads directly and can run a configured OCR command such as `tesseract` for image uploads. Install the OCR tool separately if you want image OCR locally. PDF extraction is not supported by this provider.
+- `openai`: optional provider behind `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, and `OPENAI_EXTRACTION_MODEL`. It can process text, image, and PDF uploads through the Responses API and stores both the raw model response and validated parsed output.
 
 AI-derived extraction output remains draft data with `needs_review=true` until
 the user edits/reviews it and clicks Approve.
@@ -171,8 +215,7 @@ the user edits/reviews it and clicks Approve.
 ### Checks
 
 ```bash
-npm --prefix frontend run build
-python3 -m pytest backend
+npm run check
 ```
 
 ## Environment Variables
@@ -192,16 +235,24 @@ LOCAL_OCR_COMMAND=tesseract
 LOCAL_OCR_TIMEOUT_SECONDS=20
 OPENAI_API_BASE_URL=https://api.openai.com/v1
 OPENAI_EXTRACTION_MODEL=gpt-4o-mini
-VITE_API_BASE_URL=http://127.0.0.1:8000
+FRONTEND_DIST_DIR=./frontend/dist
 ```
 
-## Suggested Demo Flow
+## Final Recording Flow
 
-1. Open the dashboard and show today's medication plan.
-2. Select `Evening Allergy Tablet` and show low-stock restock links.
-3. Mark a scheduled dose as taken and show inventory decreasing.
-4. Select `Pending Leaflet Sample`, open `Review`, edit or remove one extracted field, and approve guidance.
-5. Show the approved guidance on the medicine profile.
-6. Upload the sample leaflet fixture at `docs/fixtures/sample-leaflet.txt` to demo the upload/extract path from scratch.
+Aim for 2-3 minutes:
 
-For a short narration outline, see [docs/demo-script.md](./docs/demo-script.md).
+1. Open the dashboard with seeded data and introduce MedShelf as schedule,
+   inventory, and reviewed leaflet guidance in one place.
+2. Show today's doses, the low-stock panel, days remaining, and pharmacy/Google
+   restock links.
+3. Open `Evening Allergy Tablet`, mark today's dose as taken, and point out the
+   inventory decrease.
+4. Open `Pending Leaflet Sample`, click `Review`, and show confidence labels,
+   source snippets, editable fields, and remove actions.
+5. Edit or remove one extracted field, approve the guidance, and show that it is
+   saved as reviewed guidance rather than automatic medical advice.
+6. Upload `docs/fixtures/sample-leaflet.txt` only if time allows, to show the
+   demo extraction path from scratch.
+
+For a concise narration outline, see [docs/demo-script.md](./docs/demo-script.md).

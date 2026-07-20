@@ -1,5 +1,26 @@
 from functools import lru_cache
-from os import getenv
+from os import environ, getenv
+from pathlib import Path
+
+
+def load_env_file(path: Path = Path(".env")) -> None:
+    if not path.exists():
+        return
+
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line.removeprefix("export ").strip()
+        if "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'\"")
+        if key and key not in environ:
+            environ[key] = value
 
 
 class Settings:
@@ -15,8 +36,10 @@ class Settings:
     openai_api_key: str
     openai_api_base_url: str
     openai_extraction_model: str
+    frontend_dist_dir: str
 
     def __init__(self) -> None:
+        load_env_file()
         self.app_env = getenv("APP_ENV", "development")
         self.database_url = getenv("DATABASE_URL", "sqlite:///./medshelf.db")
         origins = getenv("BACKEND_CORS_ORIGINS", "http://localhost:5173")
@@ -43,6 +66,7 @@ class Settings:
         self.openai_extraction_model = getenv(
             "OPENAI_EXTRACTION_MODEL", "gpt-4o-mini"
         ).strip()
+        self.frontend_dist_dir = getenv("FRONTEND_DIST_DIR", "./frontend/dist").strip()
 
 
 @lru_cache

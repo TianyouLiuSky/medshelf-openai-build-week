@@ -1,8 +1,11 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from .database import init_db
 from .repository import seed_demo_medications
@@ -20,6 +23,33 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             leaflet_upload_dir=settings.leaflet_upload_dir,
         )
     yield
+
+
+def resolve_frontend_dist_dir(frontend_dist_dir: str) -> Path | None:
+    dist_path = Path(frontend_dist_dir)
+    if not dist_path.is_absolute():
+        dist_path = Path.cwd() / dist_path
+    dist_path = dist_path.resolve()
+    if (dist_path / "index.html").is_file():
+        return dist_path
+    return None
+
+
+def mount_frontend(app: FastAPI, dist_path: Path) -> None:
+    assets_path = dist_path / "assets"
+    if assets_path.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets_path), name="frontend-assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def serve_frontend(full_path: str) -> FileResponse:
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        requested_path = (dist_path / full_path).resolve()
+        if requested_path.is_file() and requested_path.is_relative_to(dist_path):
+            return FileResponse(requested_path)
+
+        return FileResponse(dist_path / "index.html")
 
 
 def create_app() -> FastAPI:
@@ -47,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(dashboard.router)
     app.include_router(restock.router)
     app.include_router(demo.router)
+    frontend_dist_dir = resolve_frontend_dist_dir(settings.frontend_dist_dir)
 
     @app.get("/api/health", tags=["system"])
     def health_check() -> dict[str, str]:
@@ -56,11 +87,14 @@ def create_app() -> FastAPI:
             "environment": settings.app_env,
         }
 
-    @app.get("/", tags=["system"])
-    def root() -> dict[str, str]:
-        return {
-            "message": "MedShelf API is running. See /docs for the API schema.",
-        }
+    if frontend_dist_dir is None:
+        @app.get("/", tags=["system"])
+        def root() -> dict[str, str]:
+            return {
+                "message": "MedShelf API is running. See /docs for the API schema.",
+            }
+    else:
+        mount_frontend(app, frontend_dist_dir)
 
     return app
 

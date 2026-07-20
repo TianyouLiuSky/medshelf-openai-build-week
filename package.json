@@ -2,9 +2,15 @@
   "name": "medshelf",
   "private": true,
   "scripts": {
+    "setup": "sh scripts/setup.sh",
+    "dev": "sh scripts/dev.sh",
+    "start": "sh scripts/start.sh",
+    "build": "npm --prefix frontend run build",
+    "check": "sh scripts/check.sh",
+    "seed:reset": "curl -X POST \"http://127.0.0.1:8000/api/demo/seed?reset=true\"",
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
-    "test:backend": "python3 -m pytest backend",
-    "dev:backend": "uvicorn backend.app.main:app --reload"
+    "test:backend": ".venv/bin/python -m pytest backend",
+    "dev:backend": ".venv/bin/uvicorn backend.app.main:app --reload"
   }
 }
