@@ -25,6 +25,8 @@ import MedicineList from "../components/MedicineList";
 import LowStockPanel from "../components/LowStockPanel";
 import StatusBadge from "../components/StatusBadge";
 import TodayDashboardPanel from "../components/TodayDashboard";
+import { useI18n, type Language } from "../i18n";
+import type { ThemeMode } from "../App";
 import type {
   DoseActionStatus,
   LeafletExtraction,
@@ -42,6 +44,13 @@ import type {
 
 type WorkspaceMode = "detail" | "new" | "edit";
 
+interface MedicineDashboardProps {
+  language: Language;
+  themeMode: ThemeMode;
+  onLanguageChange: (language: Language) => void;
+  onThemeModeChange: (themeMode: ThemeMode) => void;
+}
+
 function localDateValue(date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -49,7 +58,13 @@ function localDateValue(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-function MedicineDashboard() {
+function MedicineDashboard({
+  language,
+  themeMode,
+  onLanguageChange,
+  onThemeModeChange
+}: MedicineDashboardProps) {
+  const { t } = useI18n();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [todayDashboard, setTodayDashboard] =
@@ -68,6 +83,8 @@ function MedicineDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [isRestockLoading, setIsRestockLoading] = useState(false);
+  const [isLeafletGuidanceLoading, setIsLeafletGuidanceLoading] =
+    useState(false);
   const [isLeafletLoading, setIsLeafletLoading] = useState(false);
   const [isLeafletReviewLoading, setIsLeafletReviewLoading] = useState(false);
   const [isLeafletUploading, setIsLeafletUploading] = useState(false);
@@ -125,7 +142,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not load medicines."
+          : t("Could not load medicines.")
       );
     } finally {
       setIsLoading(false);
@@ -140,7 +157,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not load schedules."
+          : t("Could not load schedules.")
       );
     }
   }
@@ -155,7 +172,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not load leaflets."
+          : t("Could not load leaflets.")
       );
     } finally {
       setIsLeafletLoading(false);
@@ -163,6 +180,8 @@ function MedicineDashboard() {
   }
 
   async function loadLeafletGuidanceForMedication(medicationId: number) {
+    setIsLeafletGuidanceLoading(true);
+
     try {
       const guidance = await listLeafletGuidance(medicationId);
       setLeafletGuidance(guidance);
@@ -170,8 +189,10 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not load reviewed leaflet guidance."
+          : t("Could not load reviewed leaflet guidance.")
       );
+    } finally {
+      setIsLeafletGuidanceLoading(false);
     }
   }
 
@@ -185,7 +206,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not load today's dashboard."
+          : t("Could not load today's dashboard.")
       );
     } finally {
       setIsDashboardLoading(false);
@@ -248,7 +269,7 @@ function MedicineDashboard() {
           setError(
             caughtError instanceof Error
               ? caughtError.message
-              : "Could not load restock links."
+              : t("Could not load restock links.")
           );
         }
       } finally {
@@ -278,7 +299,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not save medicine."
+          : t("Could not save medicine.")
       );
     } finally {
       setIsSaving(false);
@@ -302,7 +323,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not update medicine."
+          : t("Could not update medicine.")
       );
     } finally {
       setIsSaving(false);
@@ -310,7 +331,7 @@ function MedicineDashboard() {
   }
 
   async function handleDelete(medication: Medication) {
-    const confirmed = window.confirm(`Delete ${medication.name}?`);
+    const confirmed = window.confirm(`${t("Delete")} ${medication.name}?`);
     if (!confirmed) {
       return;
     }
@@ -327,7 +348,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not delete medicine."
+          : t("Could not delete medicine.")
       );
     }
   }
@@ -346,7 +367,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not load demo data."
+          : t("Could not load demo data.")
       );
     } finally {
       setIsLoading(false);
@@ -369,7 +390,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not save schedule."
+          : t("Could not save schedule.")
       );
     } finally {
       setIsScheduleSaving(false);
@@ -377,7 +398,7 @@ function MedicineDashboard() {
   }
 
   async function handleDeleteSchedule(schedule: Schedule) {
-    const confirmed = window.confirm("Delete this schedule?");
+    const confirmed = window.confirm(t("Delete this schedule?"));
     if (!confirmed) {
       return;
     }
@@ -392,7 +413,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not delete schedule."
+          : t("Could not delete schedule.")
       );
     }
   }
@@ -414,7 +435,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not update dose."
+          : t("Could not update dose.")
       );
     } finally {
       setActiveDoseKey(null);
@@ -437,7 +458,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not upload leaflet."
+          : t("Could not upload leaflet.")
       );
       throw caughtError;
     } finally {
@@ -452,7 +473,7 @@ function MedicineDashboard() {
     try {
       const extraction = await extractLeaflet(upload.id);
       if (extraction.status === "failed") {
-        setError(extraction.error_message || "Leaflet extraction failed.");
+        setError(extraction.error_message || t("Leaflet extraction failed."));
       } else if (extraction.status === "needs_review") {
         setSelectedLeafletExtraction(extraction);
       }
@@ -461,7 +482,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not extract leaflet."
+          : t("Could not extract leaflet.")
       );
     } finally {
       setActiveLeafletExtractionId(null);
@@ -476,7 +497,7 @@ function MedicineDashboard() {
     try {
       const extraction = await getLatestLeafletExtraction(upload.id);
       if (extraction.status !== "needs_review" || !extraction.parsed_output) {
-        setError("This leaflet does not have reviewable extraction output.");
+        setError(t("This leaflet does not have reviewable extraction output."));
         setSelectedLeafletExtraction(null);
         return;
       }
@@ -485,7 +506,7 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not open leaflet review."
+          : t("Could not open leaflet review.")
       );
     } finally {
       setActiveLeafletReviewId(null);
@@ -512,10 +533,21 @@ function MedicineDashboard() {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Could not approve leaflet guidance."
+          : t("Could not approve leaflet guidance.")
       );
     } finally {
       setIsLeafletApproving(false);
+    }
+  }
+
+  async function handleRetryLoad() {
+    setError("");
+    await loadMedicines(selectedMedicationId ?? undefined);
+    await loadTodayDashboard();
+    if (selectedMedicationId !== null) {
+      await loadSchedulesForMedication(selectedMedicationId);
+      await loadLeafletsForMedication(selectedMedicationId);
+      await loadLeafletGuidanceForMedication(selectedMedicationId);
     }
   }
 
@@ -524,31 +556,56 @@ function MedicineDashboard() {
       <header className="app-header">
         <div>
           <p className="eyebrow">MedShelf</p>
-          <h1>Medicine Tracker</h1>
+          <h1>{t("Medicine Tracker")}</h1>
         </div>
         <div className="header-actions">
+          <div className="preference-controls" aria-label={t("Display preferences")}>
+            <label className="theme-toggle">
+              <input
+                type="checkbox"
+                checked={themeMode === "dark"}
+                onChange={(event) =>
+                  onThemeModeChange(event.target.checked ? "dark" : "light")
+                }
+              />
+              <span>{themeMode === "dark" ? t("Night mode") : t("Day mode")}</span>
+            </label>
+            <label className="language-select">
+              <span>{t("Language")}</span>
+              <select
+                value={language}
+                onChange={(event) =>
+                  onLanguageChange(event.target.value as Language)
+                }
+              >
+                <option value="en">{t("English")}</option>
+                <option value="zh">{t("Chinese")}</option>
+              </select>
+            </label>
+          </div>
           <button
             className="secondary-button"
             type="button"
             onClick={handleSeedDemo}
           >
-            Load demo data
+            {t("Load demo data")}
           </button>
           <button
             className="primary-button"
             type="button"
             onClick={() => setMode("new")}
           >
-            Add medicine
+            {t("Add medicine")}
           </button>
         </div>
       </header>
 
       <section className="safety-banner" role="note">
-        <strong>Informational support only.</strong>
+        <strong>{t("Informational support only.")}</strong>
         <span>
-          Keep prescriptions, labels, and pharmacist guidance as the source of
-          truth.
+          {t(
+            "Keep prescriptions, labels, and pharmacist guidance as the source of truth. The default demo uses mock extraction and local upload storage."
+          )}
         </span>
       </section>
 
@@ -558,28 +615,28 @@ function MedicineDashboard() {
           <button
             className="text-button"
             type="button"
-            onClick={() => void loadMedicines()}
+            onClick={() => void handleRetryLoad()}
           >
-            Retry
+            {t("Retry")}
           </button>
         </div>
       )}
 
       <section className="summary-grid" aria-label="Medicine summary">
         <div className="summary-item">
-          <span>Total medicines</span>
+          <span>{t("Total medicines")}</span>
           <strong>{medications.length}</strong>
         </div>
         <div className="summary-item">
-          <span>Low stock</span>
+          <span>{t("Low stock")}</span>
           <strong>{lowStockCount}</strong>
         </div>
         <div className="summary-item">
-          <span>Today's doses</span>
+          <span>{t("Today's doses")}</span>
           <strong>{todayDoseCount}</strong>
         </div>
         <div className="summary-item">
-          <span>Missed</span>
+          <span>{t("Missed")}</span>
           <strong>
             {missedDoseCount > 0 ? (
               <StatusBadge tone="danger">{String(missedDoseCount)}</StatusBadge>
@@ -610,8 +667,8 @@ function MedicineDashboard() {
       <section className="workspace-grid">
         <aside className="list-panel" aria-labelledby="medicine-list-title">
           <div className="section-heading">
-            <h2 id="medicine-list-title">Medicines</h2>
-            {isLoading && <span className="muted-label">Loading</span>}
+            <h2 id="medicine-list-title">{t("Medicines")}</h2>
+            {isLoading && <span className="muted-label">{t("Loading")}</span>}
           </div>
           {!isLoading && (
             <MedicineList
@@ -628,7 +685,7 @@ function MedicineDashboard() {
         {mode === "new" && (
           <section className="form-panel" aria-labelledby="form-title">
             <div className="section-heading">
-              <h2 id="form-title">Add Medicine</h2>
+              <h2 id="form-title">{t("Add Medicine")}</h2>
             </div>
             <MedicationForm
               isSaving={isSaving}
@@ -641,7 +698,7 @@ function MedicineDashboard() {
         {mode === "edit" && selectedMedication && (
           <section className="form-panel" aria-labelledby="form-title">
             <div className="section-heading">
-              <h2 id="form-title">Edit Medicine</h2>
+              <h2 id="form-title">{t("Edit Medicine")}</h2>
             </div>
             <MedicationForm
               medication={selectedMedication}
@@ -667,6 +724,7 @@ function MedicineDashboard() {
             activeLeafletExtractionId={activeLeafletExtractionId}
             activeLeafletReviewId={activeLeafletReviewId}
             isLeafletApproving={isLeafletApproving}
+            isLeafletGuidanceLoading={isLeafletGuidanceLoading}
             isScheduleSaving={isScheduleSaving}
             isLeafletLoading={isLeafletLoading}
             isLeafletReviewLoading={isLeafletReviewLoading}

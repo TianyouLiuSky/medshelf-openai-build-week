@@ -15,7 +15,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = app.state.settings
     init_db(settings.database_url)
     if settings.seed_demo_data:
-        seed_demo_medications(settings.database_url)
+        seed_demo_medications(
+            settings.database_url,
+            leaflet_upload_dir=settings.leaflet_upload_dir,
+        )
     yield
 
 
@@ -24,7 +27,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="MedShelf API",
         summary="Backend API for the MedShelf medicine tracking MVP.",
-        version="0.7.0",
+        version="0.8.0",
         lifespan=lifespan,
     )
     app.state.settings = settings

@@ -55,6 +55,8 @@ Core API routes:
 - `DELETE /api/medications/{id}`
 - `POST /api/medications/{id}/doses`
 - `POST /api/medications/{id}/leaflet`
+- `GET /api/medications/{id}/leaflet-guidance`
+- `GET /api/leaflets/{id}/extraction`
 - `POST /api/leaflets/{id}/extract`
 - `POST /api/leaflets/{id}/approve`
 - `GET /api/restock/suggestions?medication_id=...`

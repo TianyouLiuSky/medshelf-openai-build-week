@@ -8,7 +8,7 @@ The app is designed as a web UI / progressive web app. Users can add medicines m
 
 - Event: OpenAI Build Week on Devpost
 - Suggested track: Apps for Your Life
-- Core OpenAI usage: GPT-5.6 via the Responses API for vision, extraction, translation, summarization, and structured JSON output
+- Core OpenAI usage: optional Responses API provider for leaflet extraction, translation, summarization, and structured JSON output
 - Project goal: Turn difficult medicine instructions into a practical, reviewed medicine plan
 
 ## MVP Features
@@ -34,7 +34,7 @@ MedShelf is informational support, not medical advice. It should never invent do
 - Backend: FastAPI
 - Database: SQLite for the hackathon MVP
 - Python ORM: SQLModel or SQLAlchemy
-- AI: OpenAI Responses API with GPT-5.6
+- AI: Provider-based leaflet extraction with mock default, optional local OCR, and optional OpenAI Responses API
 - Deployment: Vercel/Netlify for frontend and Render/Railway/Fly.io for backend, or a single Docker deployment
 
 ## Documentation
@@ -44,6 +44,7 @@ MedShelf is informational support, not medical advice. It should never invent do
 - [Technical Architecture](./docs/technical-architecture.md)
 - [Implementation Backlog](./docs/implementation-backlog.md)
 - [AI Extraction Contract](./docs/ai-extraction-contract.md)
+- [Demo Script](./docs/demo-script.md)
 - [Submission Checklist](./docs/submission-checklist.md)
 
 ## Local Development Target
@@ -72,6 +73,31 @@ Copy the shared example environment file before running the app:
 cp .env.example .env
 ```
 
+The default `.env.example` uses mock leaflet extraction, so the main demo does
+not require OpenAI credits or a local OCR install.
+
+### Quick Start
+
+Terminal 1:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+uvicorn backend.app.main:app --reload
+```
+
+Terminal 2:
+
+```bash
+npm --prefix frontend install
+npm --prefix frontend run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173), then click `Load demo data`
+if the seeded medicines are not already visible. The button adds missing sample
+records without deleting medicines you entered manually.
+
 ### Frontend
 
 ```bash
@@ -96,6 +122,8 @@ The API runs at [http://127.0.0.1:8000](http://127.0.0.1:8000). The health check
 On first startup, the backend creates the SQLite database and loads demo medicines when `SEED_DEMO_DATA=true`.
 Leaflet uploads are stored under `./uploads/leaflets` by default. That folder is ignored by git.
 Leaflet extraction uses `EXTRACTION_PROVIDER=mock` by default, so the local demo does not require OpenAI or any paid API. Optional providers are `local_ocr` and `openai`.
+The seeded demo includes daily schedule data, low-stock inventory, one approved
+leaflet guidance record, and one pending leaflet extraction ready for review.
 
 ### API Routes
 
@@ -129,6 +157,17 @@ Leaflet extraction uses `EXTRACTION_PROVIDER=mock` by default, so the local demo
 AI-derived extraction output remains draft data with `needs_review=true` until
 the user edits/reviews it and clicks Approve.
 
+### Privacy And Safety Notes
+
+- The default local demo uses `EXTRACTION_PROVIDER=mock`, so uploaded demo files
+  do not leave your machine for AI processing.
+- Uploaded leaflet files are stored in the git-ignored `./uploads/leaflets`
+  folder by default.
+- AI-derived output stays in `needs_review` until the user explicitly approves
+  it into reviewed guidance.
+- The app is informational support only. Clinician, pharmacist, prescription,
+  and package-label directions remain the source of truth.
+
 ### Checks
 
 ```bash
@@ -141,7 +180,7 @@ python3 -m pytest backend
 Copy `.env.example` into your local environment and fill in:
 
 ```bash
-OPENAI_API_KEY=your_api_key_here
+OPENAI_API_KEY=
 APP_ENV=development
 DATABASE_URL=sqlite:///./medshelf.db
 BACKEND_CORS_ORIGINS=http://localhost:5173
@@ -159,10 +198,10 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 ## Suggested Demo Flow
 
 1. Open the dashboard and show today's medication plan.
-2. Add a medicine manually.
-3. Mark a dose as taken and show inventory decreasing.
-4. Upload the sample leaflet fixture at `docs/fixtures/sample-leaflet.txt`.
-5. Run extraction and show the leaflet moving into `needs_review`.
-6. Open the review panel, edit or remove one extracted field, and approve guidance.
-7. Show the approved guidance on the medicine profile.
-8. Trigger a low-stock alert and show restock search links.
+2. Select `Evening Allergy Tablet` and show low-stock restock links.
+3. Mark a scheduled dose as taken and show inventory decreasing.
+4. Select `Pending Leaflet Sample`, open `Review`, edit or remove one extracted field, and approve guidance.
+5. Show the approved guidance on the medicine profile.
+6. Upload the sample leaflet fixture at `docs/fixtures/sample-leaflet.txt` to demo the upload/extract path from scratch.
+
+For a short narration outline, see [docs/demo-script.md](./docs/demo-script.md).

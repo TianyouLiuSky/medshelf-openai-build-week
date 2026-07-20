@@ -10,6 +10,7 @@ from backend.app.settings import get_settings
 @pytest.fixture
 def client(tmp_path, monkeypatch) -> Iterator[TestClient]:
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'test.db'}")
+    monkeypatch.setenv("LEAFLET_UPLOAD_DIR", str(tmp_path / "uploads"))
     monkeypatch.setenv("SEED_DEMO_DATA", "false")
     get_settings.cache_clear()
 
@@ -72,3 +73,24 @@ def test_demo_seed_route(client: TestClient) -> None:
     medications = response.json()["medications"]
     assert len(medications) == 4
     assert any(medication["is_low_stock"] for medication in medications)
+
+    medications_by_name = {
+        medication["name"]: medication for medication in medications
+    }
+    reviewed = medications_by_name["Reviewed Leaflet Sample"]
+    pending = medications_by_name["Pending Leaflet Sample"]
+
+    reviewed_guidance = client.get(
+        f"/api/medications/{reviewed['id']}/leaflet-guidance"
+    )
+    assert reviewed_guidance.status_code == 200
+    assert len(reviewed_guidance.json()) == 1
+    assert reviewed_guidance.json()[0]["guidance"]["needs_review"] is False
+
+    pending_uploads = client.get(f"/api/medications/{pending['id']}/leaflets")
+    assert pending_uploads.status_code == 200
+    assert pending_uploads.json()[0]["status"] == "needs_review"
+
+    repeat_response = client.post("/api/demo/seed")
+    assert repeat_response.status_code == 200
+    assert len(repeat_response.json()["medications"]) == 4

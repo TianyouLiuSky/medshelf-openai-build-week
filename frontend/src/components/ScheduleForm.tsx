@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 
+import { useI18n } from "../i18n";
 import type { SchedulePayload } from "../types/medicine";
 
 interface ScheduleFormProps {
@@ -25,6 +26,7 @@ function localDateValue(date = new Date()): string {
 }
 
 function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
+  const { t } = useI18n();
   const [times, setTimes] = useState(["08:00"]);
   const [selectedDays, setSelectedDays] = useState(days.map((day) => day.value));
   const [startDate, setStartDate] = useState(localDateValue());
@@ -66,22 +68,22 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
     ).sort();
 
     if (normalizedTimes.length === 0) {
-      setFormError("Add at least one time.");
+      setFormError(t("Add at least one time."));
       return;
     }
 
     if (selectedDays.length === 0) {
-      setFormError("Choose at least one day.");
+      setFormError(t("Choose at least one day."));
       return;
     }
 
     if (!startDate) {
-      setFormError("Start date is required.");
+      setFormError(t("Start date is required."));
       return;
     }
 
     if (endDate && endDate < startDate) {
-      setFormError("End date cannot be before start date.");
+      setFormError(t("End date cannot be before start date."));
       return;
     }
 
@@ -101,7 +103,7 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
   return (
     <form className="schedule-form" onSubmit={handleSubmit}>
       <div className="schedule-times">
-        <span className="field-label">Dose times</span>
+        <span className="field-label">{t("Dose times")}</span>
         {times.map((time, index) => (
           <div className="time-row" key={index}>
             <input
@@ -116,7 +118,7 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
                 type="button"
                 onClick={() => removeTime(index)}
               >
-                Remove
+                {t("Remove")}
               </button>
             )}
           </div>
@@ -126,12 +128,12 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
           type="button"
           onClick={addTime}
         >
-          Add time
+          {t("Add time")}
         </button>
       </div>
 
       <div>
-        <span className="field-label">Days</span>
+        <span className="field-label">{t("Days")}</span>
         <div className="day-toggle-grid">
           {days.map((day) => (
             <label className="day-toggle" key={day.value}>
@@ -140,7 +142,7 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
                 checked={selectedDays.includes(day.value)}
                 onChange={() => toggleDay(day.value)}
               />
-              <span>{day.label}</span>
+              <span>{t(day.label)}</span>
             </label>
           ))}
         </div>
@@ -148,7 +150,7 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
 
       <div className="form-grid">
         <label>
-          <span>Start date</span>
+          <span>{t("Start date")}</span>
           <input
             type="date"
             value={startDate}
@@ -157,7 +159,7 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
           />
         </label>
         <label>
-          <span>End date</span>
+          <span>{t("End date")}</span>
           <input
             type="date"
             value={endDate}
@@ -169,7 +171,7 @@ function ScheduleForm({ isSaving, onSubmit }: ScheduleFormProps) {
       {formError && <p className="form-error">{formError}</p>}
 
       <button className="primary-button" type="submit" disabled={isSaving}>
-        {isSaving ? "Saving" : "Add schedule"}
+        {isSaving ? t("Saving") : t("Add schedule")}
       </button>
     </form>
   );

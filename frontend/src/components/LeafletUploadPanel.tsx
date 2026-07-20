@@ -1,6 +1,7 @@
 import { FormEvent, useRef, useState } from "react";
 
 import StatusBadge from "./StatusBadge";
+import { useI18n } from "../i18n";
 import type {
   LeafletExtractionStatus,
   LeafletUpload
@@ -16,15 +17,6 @@ interface LeafletUploadPanelProps {
   onReview: (upload: LeafletUpload) => Promise<void>;
   onUpload: (file: File) => Promise<void>;
 }
-
-const statusLabels: Record<LeafletExtractionStatus, string> = {
-  uploaded: "Uploaded",
-  queued: "Queued",
-  extracting: "Extracting",
-  needs_review: "Needs review",
-  failed: "Failed",
-  approved: "Approved"
-};
 
 const statusTones: Record<
   LeafletExtractionStatus,
@@ -50,8 +42,8 @@ function formatBytes(sizeBytes: number): string {
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
+function formatDateTime(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
@@ -67,6 +59,7 @@ function LeafletUploadPanel({
   onReview,
   onUpload
 }: LeafletUploadPanelProps) {
+  const { locale, t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formError, setFormError] = useState("");
@@ -76,7 +69,7 @@ function LeafletUploadPanel({
     setFormError("");
 
     if (!selectedFile) {
-      setFormError("Choose a leaflet file first.");
+      setFormError(t("Choose a leaflet file first."));
       return;
     }
 
@@ -94,18 +87,22 @@ function LeafletUploadPanel({
   return (
     <div className="leaflet-panel">
       <div className="section-heading">
-        <h3>Leaflets</h3>
-        {isLoading && <span className="muted-label">Loading</span>}
+        <h3>{t("Leaflets")}</h3>
+        {isLoading && <span className="muted-label">{t("Loading")}</span>}
       </div>
 
       <div className="leaflet-safety">
-        <strong>Review before saving guidance.</strong>
-        <span>Uploaded leaflet content stays separate from dose plans.</span>
+        <strong>{t("Review before saving guidance.")}</strong>
+        <span>
+          {t(
+            "Uploaded leaflet content stays separate from dose plans. In the default local demo, mock extraction avoids paid AI calls."
+          )}
+        </span>
       </div>
 
       <form className="leaflet-upload-form" onSubmit={handleSubmit}>
         <label>
-          <span>Upload leaflet</span>
+          <span>{t("Upload leaflet")}</span>
           <input
             accept=".gif,.jpeg,.jpg,.pdf,.png,.txt,.webp,image/*,application/pdf,text/plain"
             ref={inputRef}
@@ -121,7 +118,7 @@ function LeafletUploadPanel({
           type="submit"
           disabled={isUploading}
         >
-          {isUploading ? "Uploading" : "Upload"}
+          {isUploading ? t("Uploading") : t("Upload")}
         </button>
       </form>
 
@@ -129,8 +126,8 @@ function LeafletUploadPanel({
 
       {uploads.length === 0 ? (
         <div className="empty-state compact-empty">
-          <h3>No leaflet uploaded</h3>
-          <p>Uploaded leaflets will appear here.</p>
+          <h3>{t("No leaflet uploaded")}</h3>
+          <p>{t("Uploaded leaflets will appear here.")}</p>
         </div>
       ) : (
         <div className="leaflet-list">
@@ -140,12 +137,12 @@ function LeafletUploadPanel({
                 <strong>{upload.original_filename}</strong>
                 <span>
                   {formatBytes(upload.size_bytes)} - {upload.content_type} -{" "}
-                  {formatDateTime(upload.created_at)}
+                  {formatDateTime(upload.created_at, locale)}
                 </span>
               </div>
               <div className="leaflet-row-actions">
                 <StatusBadge tone={statusTones[upload.status]}>
-                  {statusLabels[upload.status]}
+                  {t(upload.status)}
                 </StatusBadge>
                 {(upload.status === "uploaded" || upload.status === "failed") && (
                   <button
@@ -155,10 +152,10 @@ function LeafletUploadPanel({
                     onClick={() => void onExtract(upload)}
                   >
                     {activeExtractionId === upload.id
-                      ? "Extracting"
+                      ? t("Extracting")
                       : upload.status === "failed"
-                        ? "Retry"
-                        : "Extract"}
+                        ? t("Retry")
+                        : t("Extract")}
                   </button>
                 )}
                 {upload.status === "needs_review" && (
@@ -168,7 +165,7 @@ function LeafletUploadPanel({
                     disabled={activeReviewId !== null}
                     onClick={() => void onReview(upload)}
                   >
-                    {activeReviewId === upload.id ? "Opening" : "Review"}
+                    {activeReviewId === upload.id ? t("Opening") : t("Review")}
                   </button>
                 )}
               </div>

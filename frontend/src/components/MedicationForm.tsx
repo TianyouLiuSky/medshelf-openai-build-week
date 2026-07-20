@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 
+import { useI18n } from "../i18n";
 import type { Medication, MedicationPayload } from "../types/medicine";
 
 interface MedicationFormProps {
@@ -73,6 +74,7 @@ function MedicationForm({
   onCancel,
   onSubmit
 }: MedicationFormProps) {
+  const { t } = useI18n();
   const initialState = useMemo(() => toFormState(medication), [medication]);
   const [form, setForm] = useState<FormState>(initialState);
   const [formError, setFormError] = useState("");
@@ -86,12 +88,12 @@ function MedicationForm({
     setFormError("");
 
     if (!form.name.trim()) {
-      setFormError("Medication name is required.");
+      setFormError(t("Medicine name is required."));
       return;
     }
 
     if (!form.quantity_unit.trim()) {
-      setFormError("Quantity unit is required.");
+      setFormError(t("Quantity unit is required."));
       return;
     }
 
@@ -104,7 +106,7 @@ function MedicationForm({
       Number.isNaN(doseAmount ?? 0) ||
       Number.isNaN(lowStockThreshold ?? 0)
     ) {
-      setFormError("Quantity, dose amount, and threshold must be numbers.");
+      setFormError(t("Quantity, dose amount, and threshold must be numbers."));
       return;
     }
 
@@ -126,7 +128,7 @@ function MedicationForm({
     <form className="medicine-form" onSubmit={handleSubmit}>
       <div className="form-grid">
         <label>
-          <span>Name</span>
+          <span>{t("Name")}</span>
           <input
             value={form.name}
             onChange={(event) => updateField("name", event.target.value)}
@@ -135,7 +137,7 @@ function MedicationForm({
         </label>
 
         <label>
-          <span>Active ingredients</span>
+          <span>{t("Active ingredients")}</span>
           <input
             value={form.active_ingredients}
             onChange={(event) =>
@@ -145,16 +147,16 @@ function MedicationForm({
         </label>
 
         <label>
-          <span>Form</span>
+          <span>{t("Form")}</span>
           <input
             value={form.form}
             onChange={(event) => updateField("form", event.target.value)}
-            placeholder="tablet, capsule, inhaler"
+            placeholder={t("tablet, capsule, inhaler")}
           />
         </label>
 
         <label>
-          <span>Strength</span>
+          <span>{t("Strength")}</span>
           <input
             value={form.strength}
             onChange={(event) => updateField("strength", event.target.value)}
@@ -163,7 +165,7 @@ function MedicationForm({
         </label>
 
         <label>
-          <span>Quantity remaining</span>
+          <span>{t("Quantity remaining")}</span>
           <input
             min="0"
             step="0.01"
@@ -177,7 +179,7 @@ function MedicationForm({
         </label>
 
         <label>
-          <span>Quantity unit</span>
+          <span>{t("Quantity unit")}</span>
           <input
             value={form.quantity_unit}
             onChange={(event) =>
@@ -188,7 +190,7 @@ function MedicationForm({
         </label>
 
         <label>
-          <span>Dose amount</span>
+          <span>{t("Dose amount")}</span>
           <input
             min="0"
             step="0.01"
@@ -199,16 +201,16 @@ function MedicationForm({
         </label>
 
         <label>
-          <span>Dose unit</span>
+          <span>{t("Dose unit")}</span>
           <input
             value={form.dose_unit}
             onChange={(event) => updateField("dose_unit", event.target.value)}
-            placeholder="tablet"
+            placeholder={t("tablet")}
           />
         </label>
 
         <label>
-          <span>Low-stock threshold</span>
+          <span>{t("Low-stock threshold")}</span>
           <input
             min="0"
             step="0.01"
@@ -222,7 +224,7 @@ function MedicationForm({
       </div>
 
       <label className="notes-field">
-        <span>Notes</span>
+        <span>{t("Notes")}</span>
         <textarea
           value={form.notes}
           onChange={(event) => updateField("notes", event.target.value)}
@@ -234,10 +236,10 @@ function MedicationForm({
 
       <div className="form-actions">
         <button className="secondary-button" type="button" onClick={onCancel}>
-          Cancel
+          {t("Cancel")}
         </button>
         <button className="primary-button" type="submit" disabled={isSaving}>
-          {isSaving ? "Saving" : "Save medicine"}
+          {isSaving ? t("Saving") : t("Save medicine")}
         </button>
       </div>
     </form>

@@ -1,4 +1,5 @@
 import StatusBadge from "./StatusBadge";
+import { useI18n } from "../i18n";
 import type { Medication } from "../types/medicine";
 
 interface MedicineListProps {
@@ -7,34 +8,30 @@ interface MedicineListProps {
   onSelect: (id: number) => void;
 }
 
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 2
-  }).format(value);
-}
-
-function formatQuantity(medication: Medication): string {
-  return formatNumber(medication.quantity_remaining);
-}
-
-function formatDaysRemaining(medication: Medication): string {
+function formatDaysRemaining(
+  medication: Medication,
+  formatNumber: (value: number) => string,
+  t: (key: string) => string
+): string {
   if (medication.days_remaining_estimate === null) {
-    return "Days remaining unavailable";
+    return t("Days remaining unavailable");
   }
 
-  return `${formatNumber(medication.days_remaining_estimate)} days remaining`;
+  return `${formatNumber(medication.days_remaining_estimate)} ${t(
+    "days remaining"
+  )}`;
 }
 
-function medicineStatus(medication: Medication) {
+function medicineStatus(medication: Medication, t: (key: string) => string) {
   if (medication.is_low_stock) {
-    return { label: "Low stock", tone: "danger" as const };
+    return { label: t("Low stock"), tone: "danger" as const };
   }
 
   if (medication.low_stock_threshold === null) {
-    return { label: "No threshold", tone: "neutral" as const };
+    return { label: t("No threshold"), tone: "neutral" as const };
   }
 
-  return { label: "In stock", tone: "good" as const };
+  return { label: t("In stock"), tone: "good" as const };
 }
 
 function MedicineList({
@@ -42,11 +39,13 @@ function MedicineList({
   selectedMedicationId,
   onSelect
 }: MedicineListProps) {
+  const { formatNumber, t } = useI18n();
+
   if (medications.length === 0) {
     return (
       <div className="empty-state">
-        <h3>No medicines yet</h3>
-        <p>Add a medicine or load the demo set to begin.</p>
+        <h3>{t("No medicines yet")}</h3>
+        <p>{t("Add a medicine or load the demo set to begin.")}</p>
       </div>
     );
   }
@@ -54,7 +53,7 @@ function MedicineList({
   return (
     <ul className="medicine-list">
       {medications.map((medication) => {
-        const status = medicineStatus(medication);
+        const status = medicineStatus(medication, t);
         const isSelected = medication.id === selectedMedicationId;
 
         return (
@@ -69,13 +68,14 @@ function MedicineList({
                 <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
               </span>
               <span className="medicine-list-meta">
-                {medication.strength || medication.form || "Details pending"}
+                {medication.strength || medication.form || t("Details pending")}
               </span>
               <span className="medicine-list-stock">
-                {formatQuantity(medication)} {medication.quantity_unit} left
+                {formatNumber(medication.quantity_remaining)}{" "}
+                {medication.quantity_unit} {t("left")}
               </span>
               <span className="medicine-list-days">
-                {formatDaysRemaining(medication)}
+                {formatDaysRemaining(medication, formatNumber, t)}
               </span>
             </button>
           </li>

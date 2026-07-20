@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime, time, timezone
+from pathlib import Path
 from sqlite3 import Row
 from typing import Any
 from urllib.parse import quote_plus
@@ -24,22 +25,22 @@ from .schemas import (
 
 DEMO_MEDICATIONS = [
     MedicationCreate(
-        name="Demo Daily Medicine",
-        active_ingredients="Demo ingredient A",
+        name="Morning Vitamin D",
+        active_ingredients="Cholecalciferol",
         form="softgel",
-        strength="Demo strength",
+        strength="1000 IU",
         quantity_remaining=42,
         quantity_unit="softgels",
         dose_amount=1,
         dose_unit="softgel",
         low_stock_threshold=10,
-        notes="Demo record with comfortable remaining supply.",
+        notes="Demo daily supplement with comfortable remaining supply.",
     ),
     MedicationCreate(
-        name="Demo Low-Stock Tablet",
-        active_ingredients="Demo ingredient B",
+        name="Evening Allergy Tablet",
+        active_ingredients="Loratadine",
         form="tablet",
-        strength="Demo strength",
+        strength="10 mg",
         quantity_remaining=4,
         quantity_unit="tablets",
         dose_amount=1,
@@ -49,38 +50,38 @@ DEMO_MEDICATIONS = [
     ),
     MedicationCreate(
         name="Reviewed Leaflet Sample",
-        active_ingredients="Leaflet guidance reviewed",
+        active_ingredients="Example active ingredient",
         form="capsule",
-        strength="Demo strength",
+        strength="10 mg",
         quantity_remaining=18,
         quantity_unit="capsules",
         dose_amount=1,
         dose_unit="capsule",
         low_stock_threshold=5,
-        notes="Demo placeholder for a medicine with reviewed leaflet guidance.",
+        notes="Includes approved demo leaflet guidance for screenshots.",
     ),
     MedicationCreate(
         name="Pending Leaflet Sample",
-        active_ingredients="Needs review",
+        active_ingredients="Example review ingredient",
         form="solution",
-        strength="Demo concentration",
+        strength="5 mg / mL",
         quantity_remaining=1,
         quantity_unit="bottle",
         dose_amount=None,
         dose_unit="",
         low_stock_threshold=1,
-        notes="Demo placeholder for a leaflet that should remain needs_review until the review flow exists.",
+        notes="Includes a pending demo extraction that needs review.",
     ),
 ]
 
 DEMO_SCHEDULES = {
-    "Demo Daily Medicine": ScheduleCreate(
+    "Morning Vitamin D": ScheduleCreate(
         times=["08:00"],
         days_of_week=[0, 1, 2, 3, 4, 5, 6],
         start_date=date.today(),
         end_date=None,
     ),
-    "Demo Low-Stock Tablet": ScheduleCreate(
+    "Evening Allergy Tablet": ScheduleCreate(
         times=["20:00"],
         days_of_week=[0, 1, 2, 3, 4, 5, 6],
         start_date=date.today(),
@@ -92,6 +93,93 @@ DEMO_SCHEDULES = {
         start_date=date.today(),
         end_date=None,
     ),
+}
+
+DEMO_LEAFLET_TEXT = """MedShelf sample leaflet fixture
+Demo-only text for testing upload and review workflows.
+
+Medicine name:
+Sample Relief Capsule
+
+Active ingredient:
+Example active ingredient 10 mg.
+
+Directions:
+Follow the directions on the package label or the plan from your clinician or
+pharmacist.
+
+Warnings:
+Do not use this demo text as medical advice. Ask a clinician or pharmacist if
+the leaflet and your prescribed plan do not match.
+
+Storage:
+Store in a cool, dry place away from children.
+"""
+
+
+DEMO_PARSED_LEAFLET_OUTPUT: dict[str, Any] = {
+    "medicine_name": {
+        "value": "Sample Relief Capsule",
+        "source_snippet": "Sample Relief Capsule",
+        "confidence": "high",
+    },
+    "active_ingredients": [
+        {
+            "name": "Example active ingredient",
+            "strength": "10 mg",
+            "source_snippet": "Example active ingredient 10 mg.",
+            "confidence": "high",
+        }
+    ],
+    "usage_instructions": [
+        {
+            "instruction": (
+                "Follow the directions on the package label or the plan from "
+                "your clinician or pharmacist."
+            ),
+            "source_snippet": (
+                "Follow the directions on the package label or the plan from "
+                "your clinician or pharmacist."
+            ),
+            "confidence": "medium",
+        }
+    ],
+    "warnings": [
+        {
+            "warning": (
+                "Do not use this demo text as medical advice. Ask a clinician "
+                "or pharmacist if the leaflet and your prescribed plan do not match."
+            ),
+            "severity": "caution",
+            "source_snippet": (
+                "Do not use this demo text as medical advice. Ask a clinician "
+                "or pharmacist if the leaflet and your prescribed plan do not match."
+            ),
+            "confidence": "medium",
+        }
+    ],
+    "contraindications": [],
+    "side_effects": [],
+    "storage": [
+        {
+            "text": "Store in a cool, dry place away from children.",
+            "source_snippet": "Store in a cool, dry place away from children.",
+            "confidence": "medium",
+        }
+    ],
+    "plain_language_summary": (
+        "Demo-reviewed summary: compare the package leaflet with the user's "
+        "clinician or pharmacist plan before using these notes."
+    ),
+    "translated_summary": (
+        "No translation was needed for the demo fixture. Keep translations "
+        "reviewable before saving."
+    ),
+    "needs_review": True,
+    "review_notes": [
+        "Demo extraction seeded for screenshots.",
+        "Source snippets were preserved for each kept claim.",
+    ],
 }
 
 
@@ -1096,40 +1184,192 @@ def delete_medication(database_url: str, medication_id: int) -> bool:
 
 def seed_demo_schedules(database_url: str) -> None:
     with get_connection(database_url) as connection:
-        schedule_count = connection.execute("SELECT COUNT(*) FROM schedules").fetchone()[
-            0
-        ]
         medication_rows = connection.execute(
             "SELECT id, name FROM medications WHERE name IN (?, ?, ?)",
             tuple(DEMO_SCHEDULES.keys()),
         ).fetchall()
 
-    if schedule_count > 0:
-        return
-
     medication_ids_by_name = {row["name"]: row["id"] for row in medication_rows}
     for medication_name, schedule in DEMO_SCHEDULES.items():
         medication_id = medication_ids_by_name.get(medication_name)
-        if medication_id is not None:
+        if medication_id is None:
+            continue
+
+        with get_connection(database_url) as connection:
+            schedule_count = connection.execute(
+                "SELECT COUNT(*) FROM schedules WHERE medication_id = ?",
+                (medication_id,),
+            ).fetchone()[0]
+
+        if schedule_count == 0:
             create_schedule(database_url, medication_id, schedule)
 
 
+def demo_leaflet_file(upload_dir: str, filename: str) -> tuple[str, int]:
+    upload_path = Path(upload_dir).expanduser()
+    if not upload_path.is_absolute():
+        upload_path = Path.cwd() / upload_path
+    upload_path.mkdir(parents=True, exist_ok=True)
+
+    file_path = upload_path / filename
+    file_bytes = DEMO_LEAFLET_TEXT.encode("utf-8")
+    file_path.write_bytes(file_bytes)
+    return str(file_path), len(file_bytes)
+
+
+def seed_demo_leaflets(database_url: str, upload_dir: str) -> None:
+    with get_connection(database_url) as connection:
+        medication_rows = connection.execute(
+            """
+            SELECT id, name
+            FROM medications
+            WHERE name IN (?, ?)
+            """,
+            ("Reviewed Leaflet Sample", "Pending Leaflet Sample"),
+        ).fetchall()
+
+    medication_ids_by_name = {row["name"]: row["id"] for row in medication_rows}
+    reviewed_id = medication_ids_by_name.get("Reviewed Leaflet Sample")
+    pending_id = medication_ids_by_name.get("Pending Leaflet Sample")
+
+    if reviewed_id is not None:
+        seed_reviewed_demo_leaflet(database_url, upload_dir, reviewed_id)
+    if pending_id is not None:
+        seed_pending_demo_leaflet(database_url, upload_dir, pending_id)
+
+
+def seed_reviewed_demo_leaflet(
+    database_url: str, upload_dir: str, medication_id: int
+) -> None:
+    existing_guidance = list_leaflet_guidance_for_medication(database_url, medication_id)
+    if existing_guidance:
+        return
+
+    source_file_path, size_bytes = demo_leaflet_file(
+        upload_dir, "demo-reviewed-leaflet.txt"
+    )
+    upload = create_leaflet_upload(
+        database_url,
+        medication_id=medication_id,
+        original_filename="demo-reviewed-leaflet.txt",
+        stored_filename="demo-reviewed-leaflet.txt",
+        source_file_path=source_file_path,
+        content_type="text/plain",
+        size_bytes=size_bytes,
+        status="uploaded",
+    )
+    if upload is None:
+        return
+
+    extraction = create_leaflet_extraction_attempt(database_url, upload, "mock")
+    completed = complete_leaflet_extraction(
+        database_url,
+        extraction["id"],
+        status="needs_review",
+        source_text=DEMO_LEAFLET_TEXT,
+        raw_model_output=json.dumps(
+            {
+                "provider": "mock",
+                "demo": True,
+                "parsed_output": DEMO_PARSED_LEAFLET_OUTPUT,
+            },
+            ensure_ascii=False,
+        ),
+        parsed_output=DEMO_PARSED_LEAFLET_OUTPUT,
+        error_message="",
+    )
+    if completed is None:
+        return
+
+    reviewed_output = {
+        **DEMO_PARSED_LEAFLET_OUTPUT,
+        "needs_review": False,
+        "plain_language_summary": (
+            "Reviewed demo guidance: use the package label and clinician or "
+            "pharmacist plan as the source of truth. This saved note keeps the "
+            "leaflet warning visible with its source snippet."
+        ),
+        "review_notes": [
+            "Demo reviewer confirmed the source snippets are visible.",
+            "No dosing was inferred beyond the leaflet text.",
+        ],
+    }
+    approve_leaflet_guidance(
+        database_url,
+        upload["id"],
+        completed["id"],
+        reviewed_output,
+    )
+
+
+def seed_pending_demo_leaflet(
+    database_url: str, upload_dir: str, medication_id: int
+) -> None:
+    uploads = list_leaflet_uploads_for_medication(database_url, medication_id)
+    if uploads:
+        return
+
+    source_file_path, size_bytes = demo_leaflet_file(
+        upload_dir, "demo-pending-leaflet.txt"
+    )
+    upload = create_leaflet_upload(
+        database_url,
+        medication_id=medication_id,
+        original_filename="demo-pending-leaflet.txt",
+        stored_filename="demo-pending-leaflet.txt",
+        source_file_path=source_file_path,
+        content_type="text/plain",
+        size_bytes=size_bytes,
+        status="uploaded",
+    )
+    if upload is None:
+        return
+
+    extraction = create_leaflet_extraction_attempt(database_url, upload, "mock")
+    complete_leaflet_extraction(
+        database_url,
+        extraction["id"],
+        status="needs_review",
+        source_text=DEMO_LEAFLET_TEXT,
+        raw_model_output=json.dumps(
+            {
+                "provider": "mock",
+                "demo": True,
+                "parsed_output": DEMO_PARSED_LEAFLET_OUTPUT,
+            },
+            ensure_ascii=False,
+        ),
+        parsed_output=DEMO_PARSED_LEAFLET_OUTPUT,
+        error_message="",
+    )
+
+
 def seed_demo_medications(
-    database_url: str, reset: bool = False
+    database_url: str,
+    reset: bool = False,
+    leaflet_upload_dir: str = "./uploads/leaflets",
 ) -> list[dict[str, Any]]:
     with get_connection(database_url) as connection:
         if reset:
+            connection.execute("DELETE FROM leaflet_guidance")
+            connection.execute("DELETE FROM leaflet_extractions")
+            connection.execute("DELETE FROM leaflet_uploads")
             connection.execute("DELETE FROM dose_logs")
             connection.execute("DELETE FROM schedules")
             connection.execute("DELETE FROM medications")
             connection.commit()
 
-        count = connection.execute("SELECT COUNT(*) FROM medications").fetchone()[0]
+        existing_rows = connection.execute(
+            "SELECT name FROM medications WHERE name IN (?, ?, ?, ?)",
+            tuple(medication.name for medication in DEMO_MEDICATIONS),
+        ).fetchall()
 
-    if count == 0:
-        for medication in DEMO_MEDICATIONS:
+    existing_demo_names = {row["name"] for row in existing_rows}
+    for medication in DEMO_MEDICATIONS:
+        if medication.name not in existing_demo_names:
             create_medication(database_url, medication)
 
     seed_demo_schedules(database_url)
+    seed_demo_leaflets(database_url, leaflet_upload_dir)
 
     return list_medications(database_url)

@@ -1,4 +1,5 @@
 import StatusBadge from "./StatusBadge";
+import { useI18n } from "../i18n";
 import type {
   DoseActionStatus,
   TodayDashboard as TodayDashboardData,
@@ -12,16 +13,16 @@ interface TodayDashboardProps {
   onDoseAction: (dose: TodayDose, status: DoseActionStatus) => Promise<void>;
 }
 
-function formatDoseAmount(dose: TodayDose): string {
+function formatDoseAmount(dose: TodayDose, t: (key: string) => string): string {
   if (dose.dose_amount === null || !dose.dose_unit) {
-    return "Dose amount not recorded";
+    return t("Dose amount not recorded");
   }
 
   return `${dose.dose_amount} ${dose.dose_unit}`;
 }
 
-function formatTime(value: string): string {
-  return new Intl.DateTimeFormat(undefined, {
+function formatTime(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
     hour: "2-digit",
     minute: "2-digit"
   }).format(new Date(value));
@@ -40,8 +41,8 @@ function statusTone(status: TodayDose["status"]) {
   return "neutral" as const;
 }
 
-function statusLabel(status: TodayDose["status"]): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+function statusLabel(status: TodayDose["status"], t: (key: string) => string): string {
+  return t(status);
 }
 
 function TodayDashboard({
@@ -50,20 +51,22 @@ function TodayDashboard({
   activeDoseKey,
   onDoseAction
 }: TodayDashboardProps) {
+  const { locale, t } = useI18n();
+
   return (
     <section className="today-panel" aria-labelledby="today-dashboard-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Today</p>
-          <h2 id="today-dashboard-title">Dose Dashboard</h2>
+          <p className="eyebrow">{t("Today")}</p>
+          <h2 id="today-dashboard-title">{t("Dose Dashboard")}</h2>
         </div>
-        {isLoading && <span className="muted-label">Loading</span>}
+        {isLoading && <span className="muted-label">{t("Loading")}</span>}
       </div>
 
       {!isLoading && (!dashboard || dashboard.doses.length === 0) && (
         <div className="empty-state compact-empty">
-          <h3>No doses scheduled today</h3>
-          <p>Add schedules to medicines to generate the daily view.</p>
+          <h3>{t("No doses scheduled today")}</h3>
+          <p>{t("Add schedules to medicines to generate the daily view.")}</p>
         </div>
       )}
 
@@ -75,19 +78,20 @@ function TodayDashboard({
             return (
               <article className="today-dose" key={dose.dose_key}>
                 <div className="today-dose-time">
-                  <strong>{formatTime(dose.scheduled_at)}</strong>
+                  <strong>{formatTime(dose.scheduled_at, locale)}</strong>
                   <StatusBadge tone={statusTone(dose.status)}>
-                    {statusLabel(dose.status)}
+                    {statusLabel(dose.status, t)}
                   </StatusBadge>
                 </div>
                 <div className="today-dose-main">
                   <h3>{dose.medication_name}</h3>
                   <p>
-                    {dose.strength || dose.form || "Medicine details pending"} -{" "}
-                    {formatDoseAmount(dose)}
+                    {dose.strength || dose.form || t("Medicine details pending")} -{" "}
+                    {formatDoseAmount(dose, t)}
                   </p>
                   <span>
-                    {dose.quantity_remaining} {dose.quantity_unit} remaining
+                    {dose.quantity_remaining} {dose.quantity_unit}{" "}
+                    {t("remaining")}
                   </span>
                 </div>
                 <div className="dose-actions">
@@ -97,7 +101,7 @@ function TodayDashboard({
                     disabled={isBusy || dose.status === "taken"}
                     onClick={() => onDoseAction(dose, "taken")}
                   >
-                    Taken
+                    {t("Taken")}
                   </button>
                   <button
                     className="secondary-button compact-button"
@@ -105,7 +109,7 @@ function TodayDashboard({
                     disabled={isBusy || dose.status === "skipped"}
                     onClick={() => onDoseAction(dose, "skipped")}
                   >
-                    Skip
+                    {t("Skip")}
                   </button>
                 </div>
               </article>

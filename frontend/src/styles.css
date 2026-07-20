@@ -17,6 +17,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: #f6f8f5;
 }
 
 button,
@@ -56,6 +57,37 @@ button:disabled {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.preference-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.theme-toggle,
+.language-select {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  color: #43534e;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.theme-toggle input {
+  width: auto;
+}
+
+.language-select select {
+  min-height: 34px;
+  padding: 5px 28px 5px 9px;
 }
 
 .eyebrow {
@@ -145,6 +177,14 @@ h4 {
   padding: 4px 8px;
   background: transparent;
   color: #1f6f61;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button,
+.text-button,
+.restock-link {
+  overflow-wrap: anywhere;
 }
 
 .danger-text {
@@ -363,6 +403,10 @@ h4 {
   gap: 16px;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.section-heading > div {
+  min-width: 0;
 }
 
 .muted-label {
@@ -657,11 +701,19 @@ h4 {
 .approved-guidance-header div {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .approved-guidance-header span {
   color: #60716b;
   font-size: 0.9rem;
+}
+
+.approved-guidance-header strong,
+.guidance-claim-heading strong,
+.review-item-heading strong,
+.source-snippet {
+  overflow-wrap: anywhere;
 }
 
 .review-safety,
@@ -941,6 +993,7 @@ textarea {
   .today-dose,
   .low-stock-card,
   .leaflet-upload-form,
+  .select-with-badge,
   .review-grid,
   .detail-grid,
   .form-grid {
@@ -956,6 +1009,7 @@ textarea {
   }
 
   .detail-header,
+  .header-actions,
   .medicine-list-topline,
   .low-stock-title-row,
   .leaflet-row-actions,
@@ -969,4 +1023,180 @@ textarea {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .preference-controls {
+    width: 100%;
+  }
+}
+
+:root[data-theme="dark"] {
+  color: #dbe7e1;
+  background: #101815;
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] body {
+  background: #101815;
+}
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] .summary-item strong,
+:root[data-theme="dark"] .detail-grid strong,
+:root[data-theme="dark"] .today-dose-time strong {
+  color: #f4fbf7;
+}
+
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .text-button,
+:root[data-theme="dark"] .restock-link {
+  color: #7fd4bd;
+}
+
+:root[data-theme="dark"] .preference-controls,
+:root[data-theme="dark"] .summary-item,
+:root[data-theme="dark"] .today-panel,
+:root[data-theme="dark"] .today-dose,
+:root[data-theme="dark"] .low-stock-card,
+:root[data-theme="dark"] .medicine-select,
+:root[data-theme="dark"] .detail-panel,
+:root[data-theme="dark"] .form-panel,
+:root[data-theme="dark"] .detail-grid div,
+:root[data-theme="dark"] .leaflet-row,
+:root[data-theme="dark"] .approved-guidance,
+:root[data-theme="dark"] .review-section,
+:root[data-theme="dark"] .review-item,
+:root[data-theme="dark"] .guidance-claim-list li,
+:root[data-theme="dark"] .schedule-row,
+:root[data-theme="dark"] .schedule-form,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .restock-link {
+  border-color: #31443d;
+  background: #18231f;
+}
+
+:root[data-theme="dark"] .today-dose,
+:root[data-theme="dark"] .leaflet-row,
+:root[data-theme="dark"] .approved-guidance,
+:root[data-theme="dark"] .guidance-claim-list li,
+:root[data-theme="dark"] .schedule-row {
+  background: #1c2a25;
+}
+
+:root[data-theme="dark"] .low-stock-panel,
+:root[data-theme="dark"] .restock-panel,
+:root[data-theme="dark"] .review-item.is-urgent-warning,
+:root[data-theme="dark"] .guidance-claim-list .urgent-claim {
+  border-color: #75473f;
+  background: #2a1d1b;
+}
+
+:root[data-theme="dark"] .safety-banner,
+:root[data-theme="dark"] .safety-strip,
+:root[data-theme="dark"] .leaflet-safety,
+:root[data-theme="dark"] .review-safety,
+:root[data-theme="dark"] .reviewed-safety,
+:root[data-theme="dark"] .review-item.is-low-confidence {
+  border-color: #75632e;
+  background: #2b2618;
+  color: #eadfb7;
+}
+
+:root[data-theme="dark"] .safety-banner strong,
+:root[data-theme="dark"] .safety-strip strong,
+:root[data-theme="dark"] .leaflet-safety strong,
+:root[data-theme="dark"] .review-safety strong,
+:root[data-theme="dark"] .reviewed-safety strong {
+  color: #fff5c8;
+}
+
+:root[data-theme="dark"] .error-banner {
+  border-color: #7d3f38;
+  background: #2f1b19;
+  color: #ffc1bb;
+}
+
+:root[data-theme="dark"] .secondary-button {
+  border-color: #496158;
+  background: #1d2b26;
+  color: #dbe7e1;
+}
+
+:root[data-theme="dark"] .secondary-button:hover,
+:root[data-theme="dark"] .restock-link:hover {
+  border-color: #79a697;
+}
+
+:root[data-theme="dark"] .primary-button {
+  background: #2f9a82;
+  color: #071411;
+}
+
+:root[data-theme="dark"] .primary-button:hover {
+  background: #43b69c;
+}
+
+:root[data-theme="dark"] .danger-button {
+  border-color: #824f49;
+  background: #351f1d;
+  color: #ffc1bb;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  border-color: #496158;
+  background: #101815;
+  color: #f4fbf7;
+}
+
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] textarea:focus,
+:root[data-theme="dark"] select:focus {
+  border-color: #7fd4bd;
+  outline-color: rgb(127 212 189 / 25%);
+}
+
+:root[data-theme="dark"] .muted-label,
+:root[data-theme="dark"] .summary-item span,
+:root[data-theme="dark"] .today-dose-main p,
+:root[data-theme="dark"] .today-dose-main span,
+:root[data-theme="dark"] .low-stock-card-main p,
+:root[data-theme="dark"] .medicine-list-meta,
+:root[data-theme="dark"] .medicine-list-stock,
+:root[data-theme="dark"] .detail-subtitle,
+:root[data-theme="dark"] .detail-grid span,
+:root[data-theme="dark"] .notes-panel p,
+:root[data-theme="dark"] .leaflet-row span,
+:root[data-theme="dark"] .approved-guidance-header span,
+:root[data-theme="dark"] .review-subtitle,
+:root[data-theme="dark"] .guidance-section p,
+:root[data-theme="dark"] .source-snippet,
+:root[data-theme="dark"] .schedule-row span,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .theme-toggle,
+:root[data-theme="dark"] .language-select {
+  color: #a9bbb4;
+}
+
+:root[data-theme="dark"] .status-badge-neutral {
+  background: #26342f;
+  color: #cddbd5;
+}
+
+:root[data-theme="dark"] .status-badge-good {
+  background: #18392f;
+  color: #9cf0ca;
+}
+
+:root[data-theme="dark"] .status-badge-warning {
+  background: #3d321b;
+  color: #ffd98e;
+}
+
+:root[data-theme="dark"] .status-badge-danger {
+  background: #45221f;
+  color: #ffb4ad;
 }

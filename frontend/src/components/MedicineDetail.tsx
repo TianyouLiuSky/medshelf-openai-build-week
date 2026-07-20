@@ -3,6 +3,7 @@ import LeafletUploadPanel from "./LeafletUploadPanel";
 import LeafletReviewPanel from "./LeafletReviewPanel";
 import ScheduleForm from "./ScheduleForm";
 import StatusBadge from "./StatusBadge";
+import { useI18n } from "../i18n";
 import type {
   LeafletExtraction,
   LeafletGuidance,
@@ -24,6 +25,7 @@ interface MedicineDetailProps {
   activeLeafletExtractionId: number | null;
   activeLeafletReviewId: number | null;
   isLeafletApproving: boolean;
+  isLeafletGuidanceLoading: boolean;
   isScheduleSaving: boolean;
   isLeafletLoading: boolean;
   isLeafletReviewLoading: boolean;
@@ -45,58 +47,64 @@ interface MedicineDetailProps {
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function formatDose(medication: Medication): string {
+function formatDose(medication: Medication, t: (key: string) => string): string {
   if (medication.dose_amount === null || !medication.dose_unit) {
-    return "Not recorded";
+    return t("Not recorded");
   }
 
   return `${medication.dose_amount} ${medication.dose_unit}`;
 }
 
-function formatThreshold(medication: Medication): string {
+function formatThreshold(
+  medication: Medication,
+  t: (key: string) => string
+): string {
   if (medication.low_stock_threshold === null) {
-    return "Not set";
+    return t("Not set");
   }
 
   return `${medication.low_stock_threshold} ${medication.quantity_unit}`;
 }
 
-function formatEstimate(value: number | null, unit: string): string {
+function formatEstimate(
+  value: number | null,
+  unit: string,
+  formatNumber: (value: number) => string,
+  t: (key: string) => string
+): string {
   if (value === null) {
-    return "Not enough schedule data";
+    return t("Not enough schedule data");
   }
 
-  return `${new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 2
-  }).format(value)} ${unit}`;
+  return `${formatNumber(value)} ${unit}`;
 }
 
-function stockBadge(medication: Medication) {
+function stockBadge(medication: Medication, t: (key: string) => string) {
   if (medication.is_low_stock) {
-    return <StatusBadge tone="danger">Low stock</StatusBadge>;
+    return <StatusBadge tone="danger">{t("Low stock")}</StatusBadge>;
   }
 
   if (medication.low_stock_threshold === null) {
-    return <StatusBadge>No threshold</StatusBadge>;
+    return <StatusBadge>{t("No threshold")}</StatusBadge>;
   }
 
-  return <StatusBadge tone="good">In stock</StatusBadge>;
+  return <StatusBadge tone="good">{t("In stock")}</StatusBadge>;
 }
 
-function formatScheduleDays(days: number[]): string {
+function formatScheduleDays(days: number[], t: (key: string) => string): string {
   if (days.length === 7) {
-    return "Every day";
+    return t("Every day");
   }
 
-  return days.map((day) => dayLabels[day]).join(", ");
+  return days.map((day) => t(dayLabels[day])).join(", ");
 }
 
-function formatScheduleRange(schedule: Schedule): string {
+function formatScheduleRange(schedule: Schedule, t: (key: string) => string): string {
   if (!schedule.end_date) {
-    return `Starts ${schedule.start_date}`;
+    return `${t("Starts")} ${schedule.start_date}`;
   }
 
-  return `${schedule.start_date} to ${schedule.end_date}`;
+  return `${schedule.start_date} ${t("to")} ${schedule.end_date}`;
 }
 
 function MedicineDetail({
@@ -109,6 +117,7 @@ function MedicineDetail({
   activeLeafletExtractionId,
   activeLeafletReviewId,
   isLeafletApproving,
+  isLeafletGuidanceLoading,
   isScheduleSaving,
   isLeafletLoading,
   isLeafletReviewLoading,
@@ -124,14 +133,16 @@ function MedicineDetail({
   onReviewLeaflet,
   onUploadLeaflet
 }: MedicineDetailProps) {
+  const { formatNumber, t } = useI18n();
+
   if (!medication) {
     return (
       <section className="detail-panel">
         <div className="empty-state detail-empty">
-          <h3>No medicine selected</h3>
-          <p>Add a medicine or choose one from the list.</p>
+          <h3>{t("No medicine selected")}</h3>
+          <p>{t("Add a medicine or choose one from the list.")}</p>
           <button className="primary-button" type="button" onClick={onCreate}>
-            Add medicine
+            {t("Add medicine")}
           </button>
         </div>
       </section>
@@ -142,51 +153,59 @@ function MedicineDetail({
     <section className="detail-panel" aria-labelledby="medicine-detail-title">
       <div className="detail-header">
         <div>
-          <p className="eyebrow">Medicine detail</p>
+          <p className="eyebrow">{t("Medicine detail")}</p>
           <h2 id="medicine-detail-title">{medication.name}</h2>
           <p className="detail-subtitle">
-            {medication.active_ingredients || "Active ingredients not recorded"}
+            {medication.active_ingredients ||
+              t("Active ingredients not recorded")}
           </p>
         </div>
-        {stockBadge(medication)}
+        {stockBadge(medication, t)}
       </div>
 
       <div className="detail-grid">
         <div>
-          <span>Form</span>
-          <strong>{medication.form || "Not recorded"}</strong>
+          <span>{t("Form")}</span>
+          <strong>{medication.form || t("Not recorded")}</strong>
         </div>
         <div>
-          <span>Strength</span>
-          <strong>{medication.strength || "Not recorded"}</strong>
+          <span>{t("Strength")}</span>
+          <strong>{medication.strength || t("Not recorded")}</strong>
         </div>
         <div>
-          <span>Remaining</span>
+          <span>{t("Remaining")}</span>
           <strong>
             {medication.quantity_remaining} {medication.quantity_unit}
           </strong>
         </div>
         <div>
-          <span>Dose amount</span>
-          <strong>{formatDose(medication)}</strong>
+          <span>{t("Dose amount")}</span>
+          <strong>{formatDose(medication, t)}</strong>
         </div>
         <div>
-          <span>Low-stock threshold</span>
-          <strong>{formatThreshold(medication)}</strong>
+          <span>{t("Low-stock threshold")}</span>
+          <strong>{formatThreshold(medication, t)}</strong>
         </div>
         <div>
-          <span>Daily usage estimate</span>
+          <span>{t("Daily usage estimate")}</span>
           <strong>
             {formatEstimate(
               medication.daily_usage_estimate,
-              medication.quantity_unit
+              medication.quantity_unit,
+              formatNumber,
+              t
             )}
           </strong>
         </div>
         <div>
-          <span>Days remaining</span>
+          <span>{t("Days remaining")}</span>
           <strong>
-            {formatEstimate(medication.days_remaining_estimate, "days")}
+            {formatEstimate(
+              medication.days_remaining_estimate,
+              t("days"),
+              formatNumber,
+              t
+            )}
           </strong>
         </div>
       </div>
@@ -194,8 +213,12 @@ function MedicineDetail({
       {medication.is_low_stock && restockSuggestion && (
         <div className="restock-panel">
           <div>
-            <h3>Restock Links</h3>
-            <p>{restockSuggestion.safety_note}</p>
+            <h3>{t("Restock Links")}</h3>
+            <p>
+              {t(
+                "Use these links to find restock options, then confirm availability, substitution, and dosing questions with a pharmacist or clinician."
+              )}
+            </p>
           </div>
           <div className="restock-actions">
             {restockSuggestion.links.map((link) => (
@@ -206,7 +229,7 @@ function MedicineDetail({
                 rel="noreferrer"
                 target="_blank"
               >
-                {link.label}
+                {t(link.label)}
               </a>
             ))}
           </div>
@@ -214,19 +237,23 @@ function MedicineDetail({
       )}
 
       <div className="safety-strip">
-        <strong>Follow clinician or pharmacist directions.</strong>
+        <strong>{t("Follow clinician or pharmacist directions.")}</strong>
         <span>
-          Keep leaflet text separate from user-entered plans until it has been
-          explicitly reviewed.
+          {t(
+            "Keep leaflet text separate from user-entered plans until it has been explicitly reviewed."
+          )}
         </span>
       </div>
 
       <div className="notes-panel">
-        <h3>Notes</h3>
-        <p>{medication.notes || "No notes recorded."}</p>
+        <h3>{t("Notes")}</h3>
+        <p>{medication.notes || t("No notes recorded.")}</p>
       </div>
 
-      <ApprovedGuidancePanel guidance={leafletGuidance} />
+      <ApprovedGuidancePanel
+        guidance={leafletGuidance}
+        isLoading={isLeafletGuidanceLoading}
+      />
 
       <LeafletUploadPanel
         uploads={leafletUploads}
@@ -249,14 +276,16 @@ function MedicineDetail({
 
       <div className="schedule-panel">
         <div className="section-heading">
-          <h3>Schedules</h3>
-          <span className="muted-label">{schedules.length} active</span>
+          <h3>{t("Schedules")}</h3>
+          <span className="muted-label">
+            {schedules.length} {t("active")}
+          </span>
         </div>
 
         {schedules.length === 0 ? (
           <div className="empty-state compact-empty">
-            <h3>No schedule yet</h3>
-            <p>Add times to generate doses on the daily dashboard.</p>
+            <h3>{t("No schedule yet")}</h3>
+            <p>{t("Add times to generate doses on the daily dashboard.")}</p>
           </div>
         ) : (
           <div className="schedule-list">
@@ -264,15 +293,15 @@ function MedicineDetail({
               <div className="schedule-row" key={schedule.id}>
                 <div>
                   <strong>{schedule.times.join(", ")}</strong>
-                  <span>{formatScheduleDays(schedule.days_of_week)}</span>
-                  <span>{formatScheduleRange(schedule)}</span>
+                  <span>{formatScheduleDays(schedule.days_of_week, t)}</span>
+                  <span>{formatScheduleRange(schedule, t)}</span>
                 </div>
                 <button
                   className="text-button danger-text"
                   type="button"
                   onClick={() => onDeleteSchedule(schedule)}
                 >
-                  Delete
+                  {t("Delete")}
                 </button>
               </div>
             ))}
@@ -288,14 +317,14 @@ function MedicineDetail({
           type="button"
           onClick={() => onEdit(medication)}
         >
-          Edit
+          {t("Edit")}
         </button>
         <button
           className="danger-button"
           type="button"
           onClick={() => onDelete(medication)}
         >
-          Delete
+          {t("Delete")}
         </button>
       </div>
     </section>

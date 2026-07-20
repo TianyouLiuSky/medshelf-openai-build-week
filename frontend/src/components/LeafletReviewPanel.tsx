@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 
 import StatusBadge from "./StatusBadge";
+import { useI18n } from "../i18n";
 import type {
   ActiveIngredientExtraction,
   LeafletConfidence,
@@ -103,24 +104,27 @@ function cleanTextClaims(items: TextClaimExtraction[]): TextClaimExtraction[] {
     .filter((item) => item.text && item.source_snippet);
 }
 
-function validateDraft(draft: LeafletGuidancePayload): string {
+function validateDraft(
+  draft: LeafletGuidancePayload,
+  t: (key: string) => string
+): string {
   if (!draft.plain_language_summary.trim()) {
-    return "Add a reviewed plain-language summary before approving.";
+    return t("Add a reviewed plain-language summary before approving.");
   }
 
   for (const item of draft.active_ingredients) {
     if (item.name.trim() && !item.source_snippet.trim()) {
-      return "Every active ingredient kept for approval needs a source snippet.";
+      return t("Every active ingredient kept for approval needs a source snippet.");
     }
   }
   for (const item of draft.usage_instructions) {
     if (item.instruction.trim() && !item.source_snippet.trim()) {
-      return "Every usage instruction kept for approval needs a source snippet.";
+      return t("Every usage instruction kept for approval needs a source snippet.");
     }
   }
   for (const item of draft.warnings) {
     if (item.warning.trim() && !item.source_snippet.trim()) {
-      return "Every warning kept for approval needs a source snippet.";
+      return t("Every warning kept for approval needs a source snippet.");
     }
   }
 
@@ -132,7 +136,9 @@ function validateDraft(draft: LeafletGuidancePayload): string {
   for (const section of textSections) {
     for (const item of section.items) {
       if (item.text.trim() && !item.source_snippet.trim()) {
-        return `Every ${section.label} kept for approval needs a source snippet.`;
+        return t(
+          `Every ${section.label} kept for approval needs a source snippet.`
+        );
       }
     }
   }
@@ -171,11 +177,13 @@ function ConfidenceField({
   value: LeafletConfidence;
   onChange: (confidence: LeafletConfidence) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <label className="compact-field">
-      <span>Confidence</span>
+      <span>{t("Confidence")}</span>
       <div className="select-with-badge">
-        <StatusBadge tone={confidenceTone(value)}>{value}</StatusBadge>
+        <StatusBadge tone={confidenceTone(value)}>{t(value)}</StatusBadge>
         <select
           value={value}
           onChange={(event) =>
@@ -184,7 +192,7 @@ function ConfidenceField({
         >
           {confidenceOptions.map((option) => (
             <option key={option} value={option}>
-              {option}
+              {t(option)}
             </option>
           ))}
         </select>
@@ -200,6 +208,7 @@ function LeafletReviewPanel({
   onApprove,
   onCancel
 }: LeafletReviewPanelProps) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<LeafletGuidancePayload>(emptyDraft);
   const [formError, setFormError] = useState("");
 
@@ -216,8 +225,8 @@ function LeafletReviewPanel({
     return (
       <section className="review-panel" aria-live="polite">
         <div className="section-heading">
-          <h3>AI Review</h3>
-          <span className="muted-label">Loading</span>
+          <h3>{t("AI Review")}</h3>
+          <span className="muted-label">{t("Loading")}</span>
         </div>
       </section>
     );
@@ -231,13 +240,13 @@ function LeafletReviewPanel({
     return (
       <section className="review-panel">
         <div className="section-heading">
-          <h3>AI Review</h3>
+          <h3>{t("AI Review")}</h3>
           <button className="text-button" type="button" onClick={onCancel}>
-            Close
+            {t("Close")}
           </button>
         </div>
         <p className="form-error">
-          This extraction does not have parsed output to review.
+          {t("This extraction does not have parsed output to review.")}
         </p>
       </section>
     );
@@ -249,14 +258,16 @@ function LeafletReviewPanel({
       return;
     }
 
-    const validationError = validateDraft(draft);
+    const validationError = validateDraft(draft, t);
     if (validationError) {
       setFormError(validationError);
       return;
     }
 
     const confirmed = window.confirm(
-      "Approve this reviewed leaflet guidance? It will be saved to the medicine profile."
+      t(
+        "Approve this reviewed leaflet guidance? It will be saved to the medicine profile."
+      )
     );
     if (!confirmed) {
       return;
@@ -325,29 +336,30 @@ function LeafletReviewPanel({
     <section className="review-panel" aria-labelledby="leaflet-review-title">
       <div className="section-heading">
         <div>
-          <h3 id="leaflet-review-title">AI Review</h3>
+          <h3 id="leaflet-review-title">{t("AI Review")}</h3>
           <p className="review-subtitle">
-            Draft extraction from {extraction.provider}. Edit or remove anything
-            uncertain before approval.
+            {t("Draft extraction from")} {extraction.provider}.{" "}
+            {t("Edit or remove anything uncertain before approval.")}
           </p>
         </div>
         <button className="text-button" type="button" onClick={onCancel}>
-          Close
+          {t("Close")}
         </button>
       </div>
 
       <div className="review-safety">
-        <strong>Review-only until approved.</strong>
+        <strong>{t("Review-only until approved.")}</strong>
         <span>
-          This is not medical advice. Compare every field with the leaflet and
-          clinician or pharmacist directions before saving it.
+          {t(
+            "This is not medical advice. Compare every field with the leaflet and clinician or pharmacist directions before saving it."
+          )}
         </span>
       </div>
 
       <form className="review-form" onSubmit={handleSubmit}>
         <section className="review-section">
           <div className="section-heading">
-            <h4>Medicine Name</h4>
+            <h4>{t("Medicine Name")}</h4>
             <button
               className="text-button danger-text"
               type="button"
@@ -355,12 +367,12 @@ function LeafletReviewPanel({
                 updateMedicineName({ value: null, source_snippet: null })
               }
             >
-              Clear
+              {t("Clear")}
             </button>
           </div>
           <div className="review-grid">
             <label>
-              <span>Name</span>
+              <span>{t("Name")}</span>
               <input
                 value={draft.medicine_name.value ?? ""}
                 onChange={(event) =>
@@ -374,7 +386,7 @@ function LeafletReviewPanel({
             />
           </div>
           <label>
-            <span>Source snippet</span>
+            <span>{t("Source snippet")}</span>
             <textarea
               rows={2}
               value={draft.medicine_name.source_snippet ?? ""}
@@ -387,7 +399,7 @@ function LeafletReviewPanel({
 
         <section className="review-section">
           <div className="section-heading">
-            <h4>Active Ingredients</h4>
+            <h4>{t("Active Ingredients")}</h4>
             <button
               className="secondary-button compact-button"
               type="button"
@@ -406,7 +418,7 @@ function LeafletReviewPanel({
                 }))
               }
             >
-              Add
+              {t("Add")}
             </button>
           </div>
           {draft.active_ingredients.map((item, index) => (
@@ -418,7 +430,7 @@ function LeafletReviewPanel({
             >
               <div className="review-item-heading">
                 <StatusBadge tone={confidenceTone(item.confidence)}>
-                  {item.confidence}
+                  {t(item.confidence)}
                 </StatusBadge>
                 <button
                   className="text-button danger-text"
@@ -432,12 +444,12 @@ function LeafletReviewPanel({
                     }))
                   }
                 >
-                  Remove
+                  {t("Remove")}
                 </button>
               </div>
               <div className="review-grid">
                 <label>
-                  <span>Name</span>
+                  <span>{t("Name")}</span>
                   <input
                     value={item.name}
                     onChange={(event) =>
@@ -448,7 +460,7 @@ function LeafletReviewPanel({
                   />
                 </label>
                 <label>
-                  <span>Strength</span>
+                  <span>{t("Strength")}</span>
                   <input
                     value={item.strength ?? ""}
                     onChange={(event) =>
@@ -466,7 +478,7 @@ function LeafletReviewPanel({
                 }
               />
               <label>
-                <span>Source snippet</span>
+                <span>{t("Source snippet")}</span>
                 <textarea
                   rows={2}
                   value={item.source_snippet}
@@ -610,9 +622,9 @@ function LeafletReviewPanel({
         />
 
         <section className="review-section">
-          <h4>Summaries And Notes</h4>
+          <h4>{t("Summaries And Notes")}</h4>
           <label>
-            <span>Plain-language summary</span>
+            <span>{t("Plain-language summary")}</span>
             <textarea
               rows={4}
               value={draft.plain_language_summary}
@@ -625,7 +637,7 @@ function LeafletReviewPanel({
             />
           </label>
           <label>
-            <span>Translated summary</span>
+            <span>{t("Translated summary")}</span>
             <textarea
               rows={4}
               value={draft.translated_summary}
@@ -638,7 +650,7 @@ function LeafletReviewPanel({
             />
           </label>
           <label>
-            <span>Review notes</span>
+            <span>{t("Review notes")}</span>
             <textarea
               rows={4}
               value={draft.review_notes.join("\n")}
@@ -660,10 +672,10 @@ function LeafletReviewPanel({
             type="submit"
             disabled={isApproving}
           >
-            {isApproving ? "Saving" : "Approve guidance"}
+            {isApproving ? t("Saving") : t("Approve guidance")}
           </button>
           <button className="secondary-button" type="button" onClick={onCancel}>
-            Cancel
+            {t("Cancel")}
           </button>
         </div>
       </form>
@@ -685,16 +697,18 @@ function EditableUsageSection({
     changes: Partial<UsageInstructionExtraction>
   ) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <section className="review-section">
       <div className="section-heading">
-        <h4>Usage Instructions</h4>
+        <h4>{t("Usage Instructions")}</h4>
         <button
           className="secondary-button compact-button"
           type="button"
           onClick={onAdd}
         >
-          Add
+          {t("Add")}
         </button>
       </div>
       {items.map((item, index) => (
@@ -706,18 +720,18 @@ function EditableUsageSection({
         >
           <div className="review-item-heading">
             <StatusBadge tone={confidenceTone(item.confidence)}>
-              {item.confidence}
+              {t(item.confidence)}
             </StatusBadge>
             <button
               className="text-button danger-text"
               type="button"
               onClick={() => onRemove(index)}
             >
-              Remove
+              {t("Remove")}
             </button>
           </div>
           <label>
-            <span>Instruction</span>
+            <span>{t("Instruction")}</span>
             <textarea
               rows={3}
               value={item.instruction}
@@ -731,7 +745,7 @@ function EditableUsageSection({
             onChange={(confidence) => onUpdate(index, { confidence })}
           />
           <label>
-            <span>Source snippet</span>
+            <span>{t("Source snippet")}</span>
             <textarea
               rows={2}
               value={item.source_snippet}
@@ -757,16 +771,18 @@ function EditableWarningSection({
   onRemove: (index: number) => void;
   onUpdate: (index: number, changes: Partial<WarningExtraction>) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <section className="review-section">
       <div className="section-heading">
-        <h4>Warnings</h4>
+        <h4>{t("Warnings")}</h4>
         <button
           className="secondary-button compact-button"
           type="button"
           onClick={onAdd}
         >
-          Add
+          {t("Add")}
         </button>
       </div>
       {items.map((item, index) => (
@@ -779,10 +795,10 @@ function EditableWarningSection({
           <div className="review-item-heading">
             <div className="badge-row">
               <StatusBadge tone={severityTone(item.severity)}>
-                {item.severity}
+                {t(item.severity)}
               </StatusBadge>
               <StatusBadge tone={confidenceTone(item.confidence)}>
-                {item.confidence}
+                {t(item.confidence)}
               </StatusBadge>
             </div>
             <button
@@ -790,11 +806,11 @@ function EditableWarningSection({
               type="button"
               onClick={() => onRemove(index)}
             >
-              Remove
+              {t("Remove")}
             </button>
           </div>
           <label>
-            <span>Warning</span>
+            <span>{t("Warning")}</span>
             <textarea
               rows={3}
               value={item.warning}
@@ -805,7 +821,7 @@ function EditableWarningSection({
           </label>
           <div className="review-grid">
             <label className="compact-field">
-              <span>Severity</span>
+              <span>{t("Severity")}</span>
               <select
                 value={item.severity}
                 onChange={(event) =>
@@ -816,7 +832,7 @@ function EditableWarningSection({
               >
                 {severityOptions.map((option) => (
                   <option key={option} value={option}>
-                    {option}
+                    {t(option)}
                   </option>
                 ))}
               </select>
@@ -827,7 +843,7 @@ function EditableWarningSection({
             />
           </div>
           <label>
-            <span>Source snippet</span>
+            <span>{t("Source snippet")}</span>
             <textarea
               rows={2}
               value={item.source_snippet}
@@ -855,16 +871,18 @@ function EditableTextClaimSection({
   onRemove: (index: number) => void;
   onUpdate: (index: number, changes: Partial<TextClaimExtraction>) => void;
 }) {
+  const { t } = useI18n();
+
   return (
     <section className="review-section">
       <div className="section-heading">
-        <h4>{title}</h4>
+        <h4>{t(title)}</h4>
         <button
           className="secondary-button compact-button"
           type="button"
           onClick={onAdd}
         >
-          Add
+          {t("Add")}
         </button>
       </div>
       {items.map((item, index) => (
@@ -876,18 +894,18 @@ function EditableTextClaimSection({
         >
           <div className="review-item-heading">
             <StatusBadge tone={confidenceTone(item.confidence)}>
-              {item.confidence}
+              {t(item.confidence)}
             </StatusBadge>
             <button
               className="text-button danger-text"
               type="button"
               onClick={() => onRemove(index)}
             >
-              Remove
+              {t("Remove")}
             </button>
           </div>
           <label>
-            <span>Text</span>
+            <span>{t("Text")}</span>
             <textarea
               rows={3}
               value={item.text}
@@ -899,7 +917,7 @@ function EditableTextClaimSection({
             onChange={(confidence) => onUpdate(index, { confidence })}
           />
           <label>
-            <span>Source snippet</span>
+            <span>{t("Source snippet")}</span>
             <textarea
               rows={2}
               value={item.source_snippet}
