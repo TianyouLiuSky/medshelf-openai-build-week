@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if settings.seed_demo_data:
         seed_demo_medications(
             settings.database_url,
+            reset=settings.reset_demo_data_on_start,
             leaflet_upload_dir=settings.leaflet_upload_dir,
         )
     yield
@@ -86,6 +87,10 @@ def create_app() -> FastAPI:
             "service": "medshelf-api",
             "environment": settings.app_env,
         }
+
+    @app.get("/api/config", tags=["system"])
+    def client_config() -> dict[str, bool]:
+        return {"public_demo": settings.public_demo}
 
     if frontend_dist_dir is None:
         @app.get("/", tags=["system"])

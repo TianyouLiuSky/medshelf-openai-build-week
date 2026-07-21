@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: medshelf-openai-build-week
+    runtime: docker
+    plan: free
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:////tmp/medshelf/medshelf.db
+      - key: BACKEND_CORS_ORIGINS
+        value: http://localhost:5173,http://127.0.0.1:5173
+      - key: SEED_DEMO_DATA
+        value: "true"
+      - key: RESET_DEMO_DATA_ON_START
+        value: "true"
+      - key: PUBLIC_DEMO
+        value: "true"
+      - key: LEAFLET_UPLOAD_DIR
+        value: /tmp/medshelf/uploads/leaflets
+      - key: LEAFLET_MAX_UPLOAD_BYTES
+        value: "10000000"
+      - key: EXTRACTION_PROVIDER
+        value: mock
+      - key: FRONTEND_DIST_DIR
+        value: /app/frontend/dist
+      - key: OPENAI_EXTRACTION_MODEL
+        value: gpt-5.6

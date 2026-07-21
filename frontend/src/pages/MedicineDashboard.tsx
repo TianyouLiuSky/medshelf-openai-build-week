@@ -8,6 +8,7 @@ import {
   deleteMedication,
   extractLeaflet,
   extractLeafletFromBrowserOcr,
+  getClientConfig,
   getLatestLeafletExtraction,
   getRestockSuggestion,
   getTodayDashboard,
@@ -92,6 +93,8 @@ function MedicineDashboard({
   const [isLeafletApproving, setIsLeafletApproving] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isScheduleSaving, setIsScheduleSaving] = useState(false);
+  const [isPublicDemo, setIsPublicDemo] = useState(false);
+  const [isDemoResetting, setIsDemoResetting] = useState(false);
   const [activeDoseKey, setActiveDoseKey] = useState<string | null>(null);
   const [activeLeafletExtractionId, setActiveLeafletExtractionId] = useState<
     number | null
@@ -217,6 +220,9 @@ function MedicineDashboard({
   useEffect(() => {
     void loadMedicines();
     void loadTodayDashboard();
+    void getClientConfig()
+      .then((config) => setIsPublicDemo(config.public_demo))
+      .catch(() => setIsPublicDemo(false));
   }, []);
 
   useEffect(() => {
@@ -354,12 +360,15 @@ function MedicineDashboard({
     }
   }
 
-  async function handleSeedDemo() {
+  async function handleSeedDemo(reset = false) {
     setError("");
     setIsLoading(true);
+    if (reset) {
+      setIsDemoResetting(true);
+    }
 
     try {
-      const seededMedications = await seedDemoMedications();
+      const seededMedications = await seedDemoMedications(reset);
       setMedications(seededMedications);
       setSelectedMedicationId(seededMedications[0]?.id ?? null);
       setMode("detail");
@@ -372,7 +381,23 @@ function MedicineDashboard({
       );
     } finally {
       setIsLoading(false);
+      if (reset) {
+        setIsDemoResetting(false);
+      }
     }
+  }
+
+  async function handleResetPublicDemo() {
+    const confirmed = window.confirm(
+      t(
+        "Restore fictional sample data in this shared sandbox? This will reset medicines, dose logs, and uploaded demo files for all visitors."
+      )
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    await handleSeedDemo(true);
   }
 
   async function handleAddSchedule(payload: SchedulePayload) {
@@ -617,7 +642,7 @@ function MedicineDashboard({
           <button
             className="secondary-button"
             type="button"
-            onClick={handleSeedDemo}
+            onClick={() => void handleSeedDemo()}
           >
             {t("Load demo data")}
           </button>
@@ -639,6 +664,27 @@ function MedicineDashboard({
           )}
         </span>
       </section>
+
+      {isPublicDemo && (
+        <section className="public-demo-banner" role="note">
+          <div>
+            <strong>{t("Public demo environment")}</strong>
+            <span>
+              {t(
+                "This shared sandbox uses fictional sample data and may reset periodically. Do not enter real personal, prescription, or medical information."
+              )}
+            </span>
+          </div>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => void handleResetPublicDemo()}
+            disabled={isDemoResetting}
+          >
+            {isDemoResetting ? t("Restoring") : t("Restore sample data")}
+          </button>
+        </section>
+      )}
 
       {error && (
         <div className="error-banner" role="alert">

@@ -1,4 +1,5 @@
 import json
+import shutil
 from datetime import date, datetime, time, timezone
 from pathlib import Path
 from sqlite3 import Row
@@ -1224,6 +1225,28 @@ def demo_leaflet_file(upload_dir: str, filename: str) -> tuple[str, int]:
     return str(file_path), len(file_bytes)
 
 
+def clear_upload_directory(upload_dir: str) -> None:
+    upload_path = Path(upload_dir).expanduser()
+    if not upload_path.is_absolute():
+        upload_path = Path.cwd() / upload_path
+    upload_path = upload_path.resolve()
+
+    unsafe_targets = {
+        Path("/").resolve(),
+        Path("/tmp").resolve(),
+        Path.cwd().resolve(),
+        Path.home().resolve(),
+    }
+    if upload_path in unsafe_targets or not upload_path.exists():
+        return
+
+    for child in upload_path.iterdir():
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink(missing_ok=True)
+
+
 def seed_demo_leaflets(database_url: str, upload_dir: str) -> None:
     with get_connection(database_url) as connection:
         medication_rows = connection.execute(
@@ -1365,6 +1388,7 @@ def seed_demo_medications(
             connection.execute("DELETE FROM schedules")
             connection.execute("DELETE FROM medications")
             connection.commit()
+            clear_upload_directory(leaflet_upload_dir)
 
         existing_rows = connection.execute(
             "SELECT name FROM medications WHERE name IN (?, ?, ?, ?)",

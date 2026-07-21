@@ -664,8 +664,7 @@ def run_local_ocr(leaflet_upload: dict[str, Any], settings: Settings) -> str:
         raise ExtractionProviderError("Local OCR timed out.") from exc
 
     if completed.returncode != 0:
-        error = completed.stderr.strip() or "Local OCR command failed."
-        raise ExtractionProviderError(snippet(error, limit=500))
+        raise ExtractionProviderError("Local OCR command failed.")
 
     source_text = completed.stdout.strip()
     if not source_text:

@@ -8,12 +8,16 @@ def test_settings_load_root_env_file(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("APP_ENV", raising=False)
     monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("PUBLIC_DEMO", raising=False)
+    monkeypatch.delenv("RESET_DEMO_DATA_ON_START", raising=False)
     monkeypatch.delenv("SEED_DEMO_DATA", raising=False)
     (tmp_path / ".env").write_text(
         "\n".join(
             [
                 "APP_ENV=demo",
                 "DATABASE_URL=sqlite:///./demo-readiness.db",
+                "PUBLIC_DEMO=true",
+                "RESET_DEMO_DATA_ON_START=true",
                 "SEED_DEMO_DATA=false",
             ]
         ),
@@ -25,6 +29,8 @@ def test_settings_load_root_env_file(tmp_path, monkeypatch) -> None:
 
     assert settings.app_env == "demo"
     assert settings.database_url == "sqlite:///./demo-readiness.db"
+    assert settings.public_demo is True
+    assert settings.reset_demo_data_on_start is True
     assert settings.seed_demo_data is False
 
     get_settings.cache_clear()
@@ -44,6 +50,45 @@ def test_health_check(tmp_path, monkeypatch) -> None:
         "service": "medshelf-api",
         "environment": "development",
     }
+
+    get_settings.cache_clear()
+
+
+def test_client_config_reports_public_demo(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'test.db'}")
+    monkeypatch.setenv("PUBLIC_DEMO", "true")
+    monkeypatch.setenv("SEED_DEMO_DATA", "false")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/config")
+
+    assert response.status_code == 200
+    assert response.json() == {"public_demo": True}
+
+    get_settings.cache_clear()
+
+
+def test_startup_reset_reseeds_demo_state_and_clears_uploads(
+    tmp_path, monkeypatch
+) -> None:
+    upload_dir = tmp_path / "uploads"
+    upload_dir.mkdir()
+    orphan_upload = upload_dir / "orphan.txt"
+    orphan_upload.write_text("old upload", encoding="utf-8")
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'test.db'}")
+    monkeypatch.setenv("LEAFLET_UPLOAD_DIR", str(upload_dir))
+    monkeypatch.setenv("RESET_DEMO_DATA_ON_START", "true")
+    monkeypatch.setenv("SEED_DEMO_DATA", "true")
+    get_settings.cache_clear()
+
+    with TestClient(create_app()) as client:
+        response = client.get("/api/medications")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 4
+    assert not orphan_upload.exists()
 
     get_settings.cache_clear()
 

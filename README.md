@@ -46,6 +46,15 @@ voiceover.
 
 MedShelf is informational support, not medical advice. It should never invent dosage instructions, override prescriptions, or silently convert uncertain leaflet content into care instructions. Any unclear extraction should be marked as needing review.
 
+## Live Demo
+
+Render URL: _pending Render deployment_.
+
+The public demo is prepared for a single managed Render web service. It runs
+without an OpenAI API key or paid OCR API and uses disposable seeded data. See
+[Deploy MedShelf On Render](./docs/deployment-render.md) for the exact setup
+steps.
+
 ## Current Stack
 
 - Frontend: React, Vite, TypeScript
@@ -53,7 +62,7 @@ MedShelf is informational support, not medical advice. It should never invent do
 - Backend: FastAPI
 - Database: SQLite for the hackathon MVP
 - AI/OCR: Browser-side OCR by default, provider-based text extraction with mock default, optional local OCR, and optional OpenAI Responses API
-- Deployment: Vercel/Netlify for frontend and Render/Railway/Fly.io for backend, or a single Docker deployment
+- Deployment: single Docker web service on Render, with FastAPI serving the compiled React frontend
 - License: MIT
 
 ## Documentation
@@ -63,6 +72,7 @@ MedShelf is informational support, not medical advice. It should never invent do
 - [Technical Architecture](./docs/technical-architecture.md)
 - [Implementation Backlog](./docs/implementation-backlog.md)
 - [AI Extraction Contract](./docs/ai-extraction-contract.md)
+- [Render Deployment Guide](./docs/deployment-render.md)
 - [Demo Script](./docs/demo-script.md)
 - [Submission Checklist](./docs/submission-checklist.md)
 - [License](./LICENSE)
@@ -155,11 +165,10 @@ Open [http://127.0.0.1:8000](http://127.0.0.1:8000). Cloud platforms can set
 `PORT`, `DATABASE_URL`, `LEAFLET_UPLOAD_DIR`, and the optional extraction
 provider variables before running `npm start`.
 
-For a simple hosted deployment, use:
-
-- Build command: `npm run setup && npm run build`
-- Start command: `npm start`
-- Health check path: `/api/health`
+For the public hosted demo, use the root `Dockerfile` and `render.yaml` with a
+Render Blueprint deployment. Render builds the frontend and backend into one
+image, then starts FastAPI with the platform-provided `PORT`. See
+[docs/deployment-render.md](./docs/deployment-render.md).
 
 ### Frontend
 
@@ -195,6 +204,7 @@ leaflet guidance record, and one pending leaflet extraction ready for review.
 ### API Routes
 
 - `GET /api/health`
+- `GET /api/config`
 - `GET /api/medications`
 - `POST /api/medications`
 - `GET /api/medications/{id}`
@@ -238,6 +248,8 @@ until the user edits/reviews it and clicks Approve.
   used.
 - Uploaded leaflet files are stored in the git-ignored `./uploads/leaflets`
   folder by default.
+- The Render public demo stores SQLite data and uploads under `/tmp/medshelf`.
+  That storage is disposable and may reset after restart or redeployment.
 - OCR and AI-derived output stays in `needs_review` until the user explicitly
   approves it into reviewed guidance.
 - The app is informational support only. Clinician, pharmacist, prescription,
@@ -257,8 +269,10 @@ Copy `.env.example` into your local environment and fill in:
 OPENAI_API_KEY=
 APP_ENV=development
 DATABASE_URL=sqlite:///./medshelf.db
-BACKEND_CORS_ORIGINS=http://localhost:5173
+BACKEND_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 SEED_DEMO_DATA=true
+RESET_DEMO_DATA_ON_START=false
+PUBLIC_DEMO=false
 LEAFLET_UPLOAD_DIR=./uploads/leaflets
 LEAFLET_MAX_UPLOAD_BYTES=10000000
 EXTRACTION_PROVIDER=mock

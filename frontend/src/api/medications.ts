@@ -19,6 +19,10 @@ interface DemoSeedResponse {
   medications: Medication[];
 }
 
+export interface ClientConfig {
+  public_demo: boolean;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
@@ -79,10 +83,15 @@ export function deleteMedication(id: number): Promise<void> {
   });
 }
 
-export function seedDemoMedications(): Promise<Medication[]> {
-  return request<DemoSeedResponse>("/api/demo/seed", {
+export function seedDemoMedications(reset = false): Promise<Medication[]> {
+  const query = reset ? "?reset=true" : "";
+  return request<DemoSeedResponse>(`/api/demo/seed${query}`, {
     method: "POST"
   }).then((response) => response.medications);
+}
+
+export function getClientConfig(): Promise<ClientConfig> {
+  return request<ClientConfig>("/api/config");
 }
 
 export function listSchedules(medicationId: number): Promise<Schedule[]> {

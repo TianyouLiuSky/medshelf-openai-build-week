@@ -11,6 +11,8 @@ from backend.app.settings import get_settings
 def client(tmp_path, monkeypatch) -> Iterator[TestClient]:
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'test.db'}")
     monkeypatch.setenv("LEAFLET_UPLOAD_DIR", str(tmp_path / "uploads"))
+    monkeypatch.setenv("PUBLIC_DEMO", "false")
+    monkeypatch.setenv("RESET_DEMO_DATA_ON_START", "false")
     monkeypatch.setenv("SEED_DEMO_DATA", "false")
     get_settings.cache_clear()
 
@@ -68,7 +70,7 @@ def test_medication_crud(client: TestClient) -> None:
     assert client.get(f"/api/medications/{medication_id}").status_code == 404
 
 
-def test_demo_seed_route(client: TestClient) -> None:
+def test_demo_seed_route(client: TestClient, tmp_path) -> None:
     response = client.post("/api/demo/seed")
 
     assert response.status_code == 200
@@ -96,3 +98,11 @@ def test_demo_seed_route(client: TestClient) -> None:
     repeat_response = client.post("/api/demo/seed")
     assert repeat_response.status_code == 200
     assert len(repeat_response.json()["medications"]) == 4
+
+    orphan_upload = tmp_path / "uploads" / "orphan.txt"
+    orphan_upload.write_text("old upload", encoding="utf-8")
+
+    reset_response = client.post("/api/demo/seed?reset=true")
+    assert reset_response.status_code == 200
+    assert len(reset_response.json()["medications"]) == 4
+    assert not orphan_upload.exists()

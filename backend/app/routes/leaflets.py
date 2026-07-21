@@ -31,7 +31,11 @@ from ..services.ai_extraction import (
     model_to_dict,
     run_extraction_provider,
 )
-from ..services.leaflet_storage import LeafletStorageError, store_leaflet_file
+from ..services.leaflet_storage import (
+    LeafletStorageError,
+    resolve_upload_dir,
+    store_leaflet_file,
+)
 
 router = APIRouter(tags=["leaflets"])
 
@@ -137,7 +141,12 @@ def read_leaflet_file(request: Request, leaflet_id: int) -> FileResponse:
     if upload is None:
         raise HTTPException(status_code=404, detail="Leaflet upload not found.")
 
-    source_file_path = Path(str(upload["source_file_path"]))
+    settings = request.app.state.settings
+    upload_root = resolve_upload_dir(settings.leaflet_upload_dir)
+    source_file_path = Path(str(upload["source_file_path"])).expanduser().resolve()
+    if not source_file_path.is_relative_to(upload_root):
+        raise HTTPException(status_code=404, detail="Leaflet file not found.")
+
     if not source_file_path.is_file():
         raise HTTPException(status_code=404, detail="Leaflet file not found.")
 

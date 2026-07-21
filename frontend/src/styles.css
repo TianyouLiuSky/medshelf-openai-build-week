@@ -198,6 +198,7 @@ h4 {
 }
 
 .safety-banner,
+.public-demo-banner,
 .error-banner {
   display: flex;
   justify-content: space-between;
@@ -216,6 +217,21 @@ h4 {
 
 .safety-banner strong {
   color: #3e2f12;
+}
+
+.public-demo-banner {
+  border: 1px solid #bdd6ef;
+  background: #eef7ff;
+  color: #284963;
+}
+
+.public-demo-banner div {
+  display: grid;
+  gap: 4px;
+}
+
+.public-demo-banner strong {
+  color: #16334c;
 }
 
 .error-banner {
@@ -1323,6 +1339,7 @@ textarea {
 
   .app-header,
   .safety-banner,
+  .public-demo-banner,
   .error-banner {
     align-items: flex-start;
     flex-direction: column;
@@ -1485,6 +1502,7 @@ textarea {
 }
 
 :root[data-theme="dark"] .safety-banner,
+:root[data-theme="dark"] .public-demo-banner,
 :root[data-theme="dark"] .safety-strip,
 :root[data-theme="dark"] .leaflet-safety,
 :root[data-theme="dark"] .leaflet-viewer-safety,
@@ -1497,6 +1515,7 @@ textarea {
 }
 
 :root[data-theme="dark"] .safety-banner strong,
+:root[data-theme="dark"] .public-demo-banner strong,
 :root[data-theme="dark"] .safety-strip strong,
 :root[data-theme="dark"] .leaflet-safety strong,
 :root[data-theme="dark"] .leaflet-viewer-safety strong,

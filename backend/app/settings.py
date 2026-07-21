@@ -3,6 +3,13 @@ from os import environ, getenv
 from pathlib import Path
 
 
+def parse_bool_env(name: str, default: bool = False) -> bool:
+    raw_value = getenv(name)
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def load_env_file(path: Path = Path(".env")) -> None:
     if not path.exists():
         return
@@ -28,6 +35,8 @@ class Settings:
     database_url: str
     cors_origins: list[str]
     seed_demo_data: bool
+    reset_demo_data_on_start: bool
+    public_demo: bool
     leaflet_upload_dir: str
     leaflet_max_upload_bytes: int
     extraction_provider: str
@@ -44,8 +53,11 @@ class Settings:
         self.database_url = getenv("DATABASE_URL", "sqlite:///./medshelf.db")
         origins = getenv("BACKEND_CORS_ORIGINS", "http://localhost:5173")
         self.cors_origins = [origin.strip() for origin in origins.split(",") if origin.strip()]
-        seed_demo_data = getenv("SEED_DEMO_DATA", "true").strip().lower()
-        self.seed_demo_data = seed_demo_data in {"1", "true", "yes", "on"}
+        self.seed_demo_data = parse_bool_env("SEED_DEMO_DATA", True)
+        self.reset_demo_data_on_start = parse_bool_env(
+            "RESET_DEMO_DATA_ON_START", False
+        )
+        self.public_demo = parse_bool_env("PUBLIC_DEMO", False)
         self.leaflet_upload_dir = getenv("LEAFLET_UPLOAD_DIR", "./uploads/leaflets")
         max_bytes = getenv("LEAFLET_MAX_UPLOAD_BYTES", "10000000")
         try:
