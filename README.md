@@ -2,23 +2,42 @@
 
 MedShelf is an OpenAI Build Week project: a safety-first medicine tracker that helps people manage medicine schedules, remaining supply, and confusing medication leaflets.
 
-The app is designed as a web UI / progressive web app. Users can add medicines manually, track doses, monitor low stock, and upload medicine leaflet files. The default local demo uses text leaflet fixtures; image OCR and PDF extraction are available only through optional providers. The AI feature extracts, translates, and simplifies leaflet instructions into a reviewed care guide while preserving source snippets and uncertainty.
+The app is designed as a web UI / progressive web app. Users can add medicines manually, track doses, monitor low stock, and upload medicine leaflet files. The default public demo reads leaflet images with browser-side OCR, lets users edit the OCR text, then turns that text into a reviewed care guide while preserving source snippets and uncertainty. OpenAI remains optional behind configuration.
 
-## Competition Fit
+## OpenAI Build Week Fit
 
 - Event: OpenAI Build Week on Devpost
-- Suggested track: Apps for Your Life
-- Core OpenAI usage: optional Responses API provider for leaflet extraction, translation, summarization, and structured JSON output
-- Project goal: Turn difficult medicine instructions into a practical, reviewed medicine plan
+- Track: Apps for Your Life
+- Core OpenAI usage: Codex was used end-to-end to plan, implement, debug, and
+  polish the MVP. GPT-5.6 was used in Codex for the final submission-readiness
+  and demo-compliance pass, including comparing the official Devpost
+  requirements against the project and tightening the demo script.
+- Optional app integration: the OpenAI Responses provider can run leaflet
+  extraction, translation, summarization, and structured JSON output with
+  `OPENAI_EXTRACTION_MODEL=gpt-5.6` when `EXTRACTION_PROVIDER=openai` and an API
+  key are configured.
+- Public demo path: browser OCR plus the mock extraction provider, so judges can
+  test the core product without using paid OCR or OpenAI API calls.
+- Project goal: Turn difficult medicine instructions into a practical, reviewed
+  medicine plan without letting OCR or AI override user-entered directions.
+
+For Devpost, include the Codex `/feedback` Session ID from the primary build
+thread in the submission form and mention the Codex/GPT-5.6 usage above in the
+voiceover.
 
 ## MVP Features
 
 - Add and edit medicines
 - Create dose schedules
+- Mark medicines as non-routine for storage-only tracking without a required
+  schedule
 - Mark scheduled doses as taken, skipped, or missed
 - Track remaining quantity and low-stock warnings
-- Upload medicine leaflet files
-- Extract key guidance from text leaflet fixtures in the default demo
+- Upload medicine leaflet files, including common image formats
+- View multi-page leaflet images full-screen with thumbnails, zoom, pan, rotate,
+  brightness, and contrast controls
+- Read leaflet images in the browser with no paid OCR or AI API required
+- Extract key guidance from edited OCR text and text leaflet fixtures
 - Translate and simplify instructions when using a configured extraction provider
 - Require user review before saving AI-derived medical guidance
 - Suggest restock search links when inventory is low
@@ -27,15 +46,15 @@ The app is designed as a web UI / progressive web app. Users can add medicines m
 
 MedShelf is informational support, not medical advice. It should never invent dosage instructions, override prescriptions, or silently convert uncertain leaflet content into care instructions. Any unclear extraction should be marked as needing review.
 
-## Recommended Stack
+## Current Stack
 
 - Frontend: React, Vite, TypeScript
-- Styling: Tailwind CSS or plain CSS modules
+- Styling: plain CSS
 - Backend: FastAPI
 - Database: SQLite for the hackathon MVP
-- Python ORM: SQLModel or SQLAlchemy
-- AI: Provider-based leaflet extraction with mock default, optional local OCR, and optional OpenAI Responses API
+- AI/OCR: Browser-side OCR by default, provider-based text extraction with mock default, optional local OCR, and optional OpenAI Responses API
 - Deployment: Vercel/Netlify for frontend and Render/Railway/Fly.io for backend, or a single Docker deployment
+- License: MIT
 
 ## Documentation
 
@@ -46,14 +65,17 @@ MedShelf is informational support, not medical advice. It should never invent do
 - [AI Extraction Contract](./docs/ai-extraction-contract.md)
 - [Demo Script](./docs/demo-script.md)
 - [Submission Checklist](./docs/submission-checklist.md)
+- [License](./LICENSE)
 
-## Local Development Target
+## Demo Data
 
-The initial implementation should aim for:
+The seeded demo includes:
 
-1. A working medicine tracker without AI.
-2. A working leaflet upload and AI extraction flow.
-3. A polished demo with sample medicines and sample leaflet data.
+1. A daily medicine with enough stock.
+2. A low-stock medicine with schedules and dose logging.
+3. A reviewed leaflet guidance sample.
+4. A pending extraction sample that is ready for the review UI.
+5. A sample leaflet image fixture at `docs/fixtures/sample-leaflet-image.png`.
 
 ## Local Development
 
@@ -75,8 +97,9 @@ Copy the shared example environment file before running the app:
 cp .env.example .env
 ```
 
-The default `.env.example` uses mock leaflet extraction, so the main demo does
-not require OpenAI credits or a local OCR install.
+The default `.env.example` uses mock leaflet text extraction, and image OCR runs
+in the browser, so the main demo does not require OpenAI credits or a local OCR
+install.
 The FastAPI backend automatically reads `.env` from the repository root. The
 frontend works through the Vite `/api` proxy by default; set frontend-specific
 Vite variables in your shell or in `frontend/.env.local` only if you need them.
@@ -165,7 +188,7 @@ The API runs at [http://127.0.0.1:8000](http://127.0.0.1:8000). The health check
 
 On first startup, the backend creates the SQLite database and loads demo medicines when `SEED_DEMO_DATA=true`.
 Leaflet uploads are stored under `./uploads/leaflets` by default. That folder is ignored by git.
-Leaflet extraction uses `EXTRACTION_PROVIDER=mock` by default, so the local demo does not require OpenAI or any paid API. Optional providers are `local_ocr` and `openai`.
+Leaflet image OCR runs in the browser with Tesseract.js and can convert HEIC/HEIF images before OCR when the browser supports that conversion path. Leaflet text extraction uses `EXTRACTION_PROVIDER=mock` by default, so the local demo does not require OpenAI or any paid API. Optional backend providers are `local_ocr` and `openai`.
 The seeded demo includes daily schedule data, low-stock inventory, one approved
 leaflet guidance record, and one pending leaflet extraction ready for review.
 
@@ -187,6 +210,7 @@ leaflet guidance record, and one pending leaflet extraction ready for review.
 - `GET /api/medications/{id}/leaflet-guidance`
 - `GET /api/leaflets/{id}/extraction`
 - `POST /api/leaflets/{id}/extract`
+- `POST /api/leaflets/{id}/extract/browser-ocr`
 - `POST /api/leaflets/{id}/approve`
 - `GET /api/dashboard/today?date=YYYY-MM-DD`
 - `GET /api/restock/suggestions?medication_id={id}&region=optional`
@@ -194,21 +218,28 @@ leaflet guidance record, and one pending leaflet extraction ready for review.
 
 ### Leaflet Extraction Providers
 
+- `browser_ocr`: default no-paid image path. The browser reads JPEG/JPG, PNG, WebP, BMP, GIF, and HEIC/HEIF when conversion succeeds, lets the user edit OCR text, then sends that text to the backend for conservative parsing. TIFF uploads are accepted, but browser OCR depends on browser/Tesseract support; use manual text paste if OCR fails.
 - `mock`: default provider for local demos. Reads `.txt` uploads, creates conservative draft extraction records, and keeps them in `needs_review`. It stores image/PDF uploads but does not read their contents.
 - `local_ocr`: reads text uploads directly and can run a configured OCR command such as `tesseract` for image uploads. Install the OCR tool separately if you want image OCR locally. PDF extraction is not supported by this provider.
-- `openai`: optional provider behind `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`, and `OPENAI_EXTRACTION_MODEL`. It can process text, image, and PDF uploads through the Responses API and stores both the raw model response and validated parsed output.
+- `openai`: optional provider behind `OPENAI_API_KEY`, `OPENAI_API_BASE_URL`,
+  and `OPENAI_EXTRACTION_MODEL`. The default optional model is `gpt-5.6` for
+  Build Week alignment. It can process text, image, and PDF uploads through the
+  Responses API and stores both the raw model response and validated parsed
+  output.
 
-AI-derived extraction output remains draft data with `needs_review=true` until
-the user edits/reviews it and clicks Approve.
+OCR and AI-derived extraction output remains draft data with `needs_review=true`
+until the user edits/reviews it and clicks Approve.
 
 ### Privacy And Safety Notes
 
-- The default local demo uses `EXTRACTION_PROVIDER=mock`, so uploaded demo files
-  do not leave your machine for AI processing.
+- The default local demo uses browser OCR plus `EXTRACTION_PROVIDER=mock`, so
+  uploaded demo files do not leave your machine for paid AI processing. The OCR
+  library may download language data in the user's browser the first time OCR is
+  used.
 - Uploaded leaflet files are stored in the git-ignored `./uploads/leaflets`
   folder by default.
-- AI-derived output stays in `needs_review` until the user explicitly approves
-  it into reviewed guidance.
+- OCR and AI-derived output stays in `needs_review` until the user explicitly
+  approves it into reviewed guidance.
 - The app is informational support only. Clinician, pharmacist, prescription,
   and package-label directions remain the source of truth.
 
@@ -234,25 +265,31 @@ EXTRACTION_PROVIDER=mock
 LOCAL_OCR_COMMAND=tesseract
 LOCAL_OCR_TIMEOUT_SECONDS=20
 OPENAI_API_BASE_URL=https://api.openai.com/v1
-OPENAI_EXTRACTION_MODEL=gpt-4o-mini
+OPENAI_EXTRACTION_MODEL=gpt-5.6
 FRONTEND_DIST_DIR=./frontend/dist
 ```
 
 ## Final Recording Flow
 
-Aim for 2-3 minutes:
+Aim for 2 minutes 45 seconds or less; Devpost judges are not required to watch
+past 3 minutes.
 
-1. Open the dashboard with seeded data and introduce MedShelf as schedule,
-   inventory, and reviewed leaflet guidance in one place.
-2. Show today's doses, the low-stock panel, days remaining, and pharmacy/Google
-   restock links.
-3. Open `Evening Allergy Tablet`, mark today's dose as taken, and point out the
+1. State the problem and the safety principle: user-entered plans, labels, and
+   pharmacist guidance remain the source of truth.
+2. Mention Codex/GPT-5.6 usage: Codex built the FastAPI/React/SQLite app through
+   milestone prompts, and GPT-5.6 was used for the final submission-readiness
+   and demo-compliance review. The app also has an optional
+   `OPENAI_EXTRACTION_MODEL=gpt-5.6` extraction provider.
+3. Show the dashboard with seeded data, today's doses, low stock, days
+   remaining, and Google restock links.
+4. Open `Evening Allergy Tablet`, mark today's dose as taken, and point out the
    inventory decrease.
-4. Open `Pending Leaflet Sample`, click `Review`, and show confidence labels,
-   source snippets, editable fields, and remove actions.
-5. Edit or remove one extracted field, approve the guidance, and show that it is
-   saved as reviewed guidance rather than automatic medical advice.
-6. Upload `docs/fixtures/sample-leaflet.txt` only if time allows, to show the
-   demo extraction path from scratch.
+5. Open a non-routine medicine or edit a medicine to show storage-only tracking
+   without a required schedule.
+6. Open a leaflet image with `View image`; show thumbnails, zoom, pan, rotate,
+   brightness, and contrast.
+7. Open `Pending Leaflet Sample`, click `Review`, show confidence/source
+   snippets/edit/remove, approve guidance, and show reviewed guidance.
 
-For a concise narration outline, see [docs/demo-script.md](./docs/demo-script.md).
+For a direct recording script with setup commands, see
+[docs/demo-script.md](./docs/demo-script.md).

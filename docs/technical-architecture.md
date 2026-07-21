@@ -6,12 +6,14 @@ MedShelf should use a small frontend/backend architecture that is easy to build 
 
 ```mermaid
 flowchart TD
-    UI["React PWA"] --> API["FastAPI backend"]
+    UI["React PWA"] --> OCR_BROWSER["Browser OCR"]
+    OCR_BROWSER --> UI
+    UI --> API["FastAPI backend"]
     API --> DB["SQLite database"]
     API --> FILES["Local upload storage"]
-    API --> EXTRACT["Extraction provider"]
+    API --> EXTRACT["Text extraction provider"]
     EXTRACT --> MOCK["Mock provider"]
-    EXTRACT --> OCR["Optional local OCR"]
+    EXTRACT --> OCR["Optional backend OCR"]
     EXTRACT --> OPENAI["Optional OpenAI Responses API"]
     API --> UI
 ```
@@ -32,7 +34,8 @@ Core screens:
 - Medicine list
 - Medicine detail
 - Add/edit medicine
-- Leaflet upload
+- Routine and non-routine storage-only medicine tracking
+- Leaflet upload and browser OCR
 - AI review
 - Settings/demo data
 
@@ -58,22 +61,27 @@ Core API routes:
 - `GET /api/medications/{id}/leaflet-guidance`
 - `GET /api/leaflets/{id}/extraction`
 - `POST /api/leaflets/{id}/extract`
+- `POST /api/leaflets/{id}/extract/browser-ocr`
 - `POST /api/leaflets/{id}/approve`
 - `GET /api/restock/suggestions?medication_id=...`
 
 ## AI Flow
 
-1. User uploads a leaflet image, PDF, or text fixture.
-2. Backend stores the file.
-3. Backend runs the configured extraction provider: `mock` by default, optional
-   `local_ocr`, or optional `openai`.
-4. Provider returns structured JSON or a recoverable failure.
-5. Backend validates parsed output with Pydantic.
-6. Backend stores raw output and parsed output with `needs_review=true`.
-7. Frontend shows the draft in an editable review UI with confidence and source
+1. User selects a leaflet image, PDF, or text fixture.
+2. For images, the browser shows a preview, runs no-paid OCR where possible, and
+   lets the user edit or paste OCR text before extraction.
+3. Backend stores the original uploaded file.
+4. If browser OCR text is submitted, the backend stores it as `source_text` and
+   parses it with the conservative `browser_ocr` path.
+5. Otherwise, the backend runs the configured extraction provider: `mock` by
+   default, optional `local_ocr`, or optional `openai`.
+6. Provider returns structured JSON or a recoverable failure.
+7. Backend validates parsed output with Pydantic.
+8. Backend stores raw output and parsed output with `needs_review=true`.
+9. Frontend shows the draft in an editable review UI with confidence and source
    snippets.
-8. User edits/removes fields and approves reviewed guidance.
-9. Backend saves a reviewed guidance record and marks the upload/extraction as
+10. User edits/removes fields and approves reviewed guidance.
+11. Backend saves a reviewed guidance record and marks the upload/extraction as
    `approved`.
 
 ## Database Tables
@@ -85,6 +93,7 @@ Core API routes:
 - `active_ingredients`
 - `form`
 - `strength`
+- `is_routine`
 - `quantity_remaining`
 - `quantity_unit`
 - `dose_amount`
@@ -138,6 +147,8 @@ Core API routes:
 
 ## Error Handling
 
+- If browser OCR fails, let the user paste text manually or store the upload
+  without extraction.
 - If AI extraction fails, show a retry button and preserve upload.
 - If extraction is uncertain, keep `needs_review` true.
 - If inventory would become negative, warn but allow user correction.

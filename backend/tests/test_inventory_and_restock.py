@@ -76,6 +76,41 @@ def test_inventory_estimates_are_null_without_schedule_or_dose(
     assert detail["days_remaining_estimate"] is None
 
 
+def test_non_routine_medicine_does_not_generate_schedule_estimates(
+    client: TestClient,
+) -> None:
+    medication_response = client.post(
+        "/api/medications",
+        json={
+            "name": "As Needed Medicine",
+            "is_routine": False,
+            "quantity_remaining": 12,
+            "quantity_unit": "capsules",
+            "dose_amount": 1,
+            "dose_unit": "capsule",
+            "low_stock_threshold": 15,
+        },
+    )
+    assert medication_response.status_code == 201
+    medication = medication_response.json()
+    assert medication["is_routine"] is False
+    assert medication["is_low_stock"] is True
+
+    schedule_response = client.post(
+        f"/api/medications/{medication['id']}/schedules",
+        json={
+            "times": ["08:00"],
+            "days_of_week": [0, 1, 2, 3, 4, 5, 6],
+            "start_date": date.today().isoformat(),
+        },
+    )
+    assert schedule_response.status_code == 201
+
+    detail = client.get(f"/api/medications/{medication['id']}").json()
+    assert detail["daily_usage_estimate"] is None
+    assert detail["days_remaining_estimate"] is None
+
+
 def test_restock_suggestion_endpoint_returns_search_links(
     client: TestClient,
 ) -> None:

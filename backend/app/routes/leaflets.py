@@ -1,7 +1,9 @@
 import json
+from pathlib import Path
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
+from fastapi.responses import FileResponse
 
 from ..repository import (
     approve_leaflet_guidance,
@@ -15,6 +17,7 @@ from ..repository import (
     list_leaflet_uploads_for_medication,
 )
 from ..schemas import (
+    LeafletBrowserOcrExtractRequest,
     LeafletApprovedGuidance,
     LeafletExtractionRead,
     LeafletGuidanceApproveRequest,
@@ -24,6 +27,7 @@ from ..schemas import (
 from ..services.ai_extraction import (
     ExtractionProviderError,
     SUPPORTED_PROVIDERS,
+    browser_ocr_text_provider,
     model_to_dict,
     run_extraction_provider,
 )
@@ -126,6 +130,25 @@ def read_latest_leaflet_extraction(request: Request, leaflet_id: int) -> dict:
     return extraction
 
 
+@router.get("/api/leaflets/{leaflet_id}/file")
+def read_leaflet_file(request: Request, leaflet_id: int) -> FileResponse:
+    database_url = database_url_from_request(request)
+    upload = get_leaflet_upload(database_url, leaflet_id)
+    if upload is None:
+        raise HTTPException(status_code=404, detail="Leaflet upload not found.")
+
+    source_file_path = Path(str(upload["source_file_path"]))
+    if not source_file_path.is_file():
+        raise HTTPException(status_code=404, detail="Leaflet file not found.")
+
+    return FileResponse(
+        source_file_path,
+        media_type=str(upload["content_type"]),
+        filename=str(upload["original_filename"]),
+        headers={"Cache-Control": "private, no-store"},
+    )
+
+
 @router.post(
     "/api/leaflets/{leaflet_id}/extract",
     response_model=LeafletExtractionRead,
@@ -161,6 +184,67 @@ def extract_leaflet(
             raw_model_output=json.dumps(
                 {
                     "provider": selected_provider,
+                    "status": "failed",
+                    "error": str(exc),
+                },
+                ensure_ascii=False,
+            ),
+            parsed_output=None,
+            error_message=str(exc),
+        )
+        if failed is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Leaflet extraction attempt could not be updated.",
+            )
+        return failed
+
+    completed = complete_leaflet_extraction(
+        database_url,
+        attempt["id"],
+        status="needs_review",
+        source_text=extraction.source_text,
+        raw_model_output=extraction.raw_model_output,
+        parsed_output=model_to_dict(extraction.parsed_output),
+        error_message="",
+    )
+    if completed is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Leaflet extraction attempt could not be updated.",
+        )
+
+    return completed
+
+
+@router.post(
+    "/api/leaflets/{leaflet_id}/extract/browser-ocr",
+    response_model=LeafletExtractionRead,
+)
+def extract_leaflet_from_browser_ocr(
+    request: Request,
+    leaflet_id: int,
+    ocr_input: LeafletBrowserOcrExtractRequest,
+) -> dict:
+    database_url = database_url_from_request(request)
+    upload = get_leaflet_upload(database_url, leaflet_id)
+    if upload is None:
+        raise HTTPException(status_code=404, detail="Leaflet upload not found.")
+
+    attempt = create_leaflet_extraction_attempt(
+        database_url, upload, "browser_ocr"
+    )
+    try:
+        extraction = browser_ocr_text_provider(upload, ocr_input.source_text)
+    except ExtractionProviderError as exc:
+        failed = complete_leaflet_extraction(
+            database_url,
+            attempt["id"],
+            status="failed",
+            source_text=ocr_input.source_text,
+            raw_model_output=json.dumps(
+                {
+                    "provider": "browser_ocr",
                     "status": "failed",
                     "error": str(exc),
                 },

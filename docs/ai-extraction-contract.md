@@ -2,13 +2,17 @@
 
 ## Purpose
 
-The AI extraction contract defines the structured output expected from a medicine leaflet image or text. The app should treat this as draft information until the user reviews it.
+The AI extraction contract defines the structured output expected from medicine
+leaflet text. For images, MedShelf should run OCR first, let the user edit the
+OCR text, and then send the reviewed text through this contract. The app should
+treat this as draft information until the user reviews it.
 
 ## System Behavior
 
 The model should:
 
-- Extract only information visible in the provided leaflet/package text.
+- Extract only information visible in the provided leaflet/package text or
+  user-reviewed OCR text.
 - Translate and simplify instructions when requested.
 - Preserve uncertainty.
 - Avoid medical advice beyond the provided source.
@@ -97,4 +101,3 @@ This output is for user review and is not medical advice.
 - Highlight low-confidence and urgent warning items.
 - Require approval before attaching guidance to a medicine.
 - Let users edit or remove extracted fields.
-

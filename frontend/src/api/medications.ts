@@ -155,10 +155,27 @@ export function uploadLeaflet(
   });
 }
 
+export function leafletFileUrl(leafletId: number): string {
+  return `${API_BASE_URL}/api/leaflets/${leafletId}/file`;
+}
+
 export function extractLeaflet(leafletId: number): Promise<LeafletExtraction> {
   return request<LeafletExtraction>(`/api/leaflets/${leafletId}/extract`, {
     method: "POST"
   });
+}
+
+export function extractLeafletFromBrowserOcr(
+  leafletId: number,
+  sourceText: string
+): Promise<LeafletExtraction> {
+  return request<LeafletExtraction>(
+    `/api/leaflets/${leafletId}/extract/browser-ocr`,
+    {
+      method: "POST",
+      body: JSON.stringify({ source_text: sourceText })
+    }
+  );
 }
 
 export function getLatestLeafletExtraction(

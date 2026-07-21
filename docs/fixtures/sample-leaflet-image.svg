@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+  <rect width="1200" height="1600" fill="#ffffff"/>
+  <rect x="84" y="84" width="1032" height="1432" rx="24" fill="#fbfcfb" stroke="#d1ddd8" stroke-width="4"/>
+  <text x="130" y="170" fill="#17231f" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="700">MedShelf sample leaflet</text>
+  <text x="130" y="250" fill="#17231f" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700">Medicine name:</text>
+  <text x="130" y="310" fill="#25302d" font-family="Arial, Helvetica, sans-serif" font-size="42">Sample Relief Tablet</text>
+  <text x="130" y="410" fill="#17231f" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700">Active ingredient:</text>
+  <text x="130" y="470" fill="#25302d" font-family="Arial, Helvetica, sans-serif" font-size="42">Example active ingredient 10 mg.</text>
+  <text x="130" y="570" fill="#17231f" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700">Directions:</text>
+  <text x="130" y="630" fill="#25302d" font-family="Arial, Helvetica, sans-serif" font-size="38">Follow the directions on the package label or the</text>
+  <text x="130" y="685" fill="#25302d" font-family="Arial, Helvetica, sans-serif" font-size="38">plan from your clinician or pharmacist.</text>
+  <text x="130" y="785" fill="#17231f" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700">Warnings:</text>
+  <text x="130" y="845" fill="#25302d" font-family="Arial, Helvetica, sans-serif" font-size="38">Do not use this demo text as medical advice.</text>
+  <text x="130" y="900" fill="#25302d" font-family="Arial, Helvetica, sans-serif" font-size="38">Ask a clinician or pharmacist if plans conflict.</text>
+  <text x="130" y="1000" fill="#17231f" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="700">Storage:</text>
+  <text x="130" y="1060" fill="#25302d" font-family="Arial, Helvetica, sans-serif" font-size="38">Store in a cool, dry place away from children.</text>
+  <text x="130" y="1215" fill="#5c4820" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700">Demo-only fixture. Review before saving guidance.</text>
+</svg>

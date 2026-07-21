@@ -5,13 +5,33 @@ import re
 from uuid import uuid4
 
 
-ALLOWED_EXTENSIONS = {".gif", ".jpeg", ".jpg", ".pdf", ".png", ".txt", ".webp"}
+ALLOWED_EXTENSIONS = {
+    ".bmp",
+    ".gif",
+    ".heic",
+    ".heif",
+    ".jpeg",
+    ".jpg",
+    ".pdf",
+    ".png",
+    ".tif",
+    ".tiff",
+    ".txt",
+    ".webp",
+    ".zip",
+}
 ALLOWED_CONTENT_TYPES = {
     "application/octet-stream",
     "application/pdf",
+    "application/zip",
+    "application/x-zip-compressed",
+    "image/bmp",
     "image/gif",
+    "image/heic",
+    "image/heif",
     "image/jpeg",
     "image/png",
+    "image/tiff",
     "image/webp",
     "text/plain",
 }

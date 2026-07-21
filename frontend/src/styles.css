@@ -583,6 +583,35 @@ h4 {
   white-space: pre-wrap;
 }
 
+.leaflet-search-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.leaflet-search-panel h3 {
+  margin-bottom: 6px;
+}
+
+.leaflet-search-panel p {
+  margin-bottom: 0;
+  color: #52645e;
+}
+
+.leaflet-search-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.leaflet-search-detected {
+  font-size: 0.88rem;
+}
+
 .leaflet-panel {
   display: grid;
   gap: 14px;
@@ -655,6 +684,296 @@ h4 {
 
 .leaflet-row .leaflet-row-actions {
   display: flex;
+}
+
+.ocr-workspace {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.ocr-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.ocr-preview {
+  min-width: 0;
+}
+
+.ocr-preview-list {
+  display: grid;
+  gap: 10px;
+  max-height: 430px;
+  overflow: auto;
+}
+
+.ocr-preview-list figure {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.ocr-preview img {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.ocr-preview-list figcaption {
+  color: #60716b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.preview-placeholder {
+  display: grid;
+  min-height: 120px;
+  align-content: center;
+  gap: 6px;
+  padding: 12px;
+  border: 1px dashed #bfd3ca;
+  border-radius: 8px;
+  background: #f6faf8;
+  color: #43534e;
+}
+
+.preview-placeholder span,
+.selected-file-list li {
+  overflow-wrap: anywhere;
+}
+
+.selected-file-list {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.selected-file-list strong {
+  color: #1f2d28;
+}
+
+.selected-file-list ol {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+  color: #60716b;
+  font-size: 0.88rem;
+}
+
+.ocr-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.ocr-controls p,
+.ocr-help {
+  margin-bottom: 0;
+  color: #60716b;
+  font-size: 0.9rem;
+}
+
+.ocr-progress {
+  display: grid;
+  gap: 6px;
+}
+
+.ocr-progress div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #43534e;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.ocr-progress progress {
+  width: 100%;
+  height: 10px;
+  accent-color: #1f6f61;
+}
+
+.ocr-text-field textarea {
+  min-height: 220px;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.leaflet-viewer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  padding: 16px;
+  background: rgba(10, 17, 15, 0.72);
+}
+
+.leaflet-viewer-dialog {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  border-radius: 8px;
+  background: #f8faf8;
+  box-shadow: 0 20px 60px rgba(16, 31, 25, 0.28);
+}
+
+.leaflet-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.leaflet-viewer-header h2 {
+  margin-bottom: 4px;
+}
+
+.leaflet-viewer-header span {
+  color: #60716b;
+  font-size: 0.9rem;
+}
+
+.leaflet-viewer-safety {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-left: 4px solid #e1b347;
+  border-radius: 8px;
+  background: #fff9e8;
+  color: #5c4820;
+}
+
+.leaflet-viewer-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(130px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.viewer-button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.leaflet-viewer-toolbar label {
+  display: grid;
+  gap: 5px;
+}
+
+.leaflet-viewer-toolbar label span {
+  color: #43534e;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.leaflet-viewer-toolbar input[type="range"] {
+  width: 100%;
+}
+
+.leaflet-viewer-body {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.leaflet-viewer-thumbnails {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.leaflet-viewer-thumbnails button {
+  display: grid;
+  gap: 5px;
+  padding: 6px;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #43534e;
+  cursor: pointer;
+  text-align: left;
+}
+
+.leaflet-viewer-thumbnails button.is-active {
+  border-color: #1f6f61;
+  box-shadow: 0 0 0 2px rgba(31, 111, 97, 0.16);
+}
+
+.leaflet-viewer-thumbnails img {
+  display: block;
+  width: 100%;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #edf4f0;
+}
+
+.leaflet-viewer-thumbnails span {
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.leaflet-viewer-viewport {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #dce5df;
+  border-radius: 8px;
+  background: #121916;
+  cursor: grab;
+  touch-action: none;
+}
+
+.leaflet-viewer-viewport:active {
+  cursor: grabbing;
+}
+
+.leaflet-viewer-image {
+  display: block;
+  max-width: none;
+  min-width: 320px;
+  margin: 48px auto;
+  transform-origin: center center;
+  user-select: none;
+}
+
+.viewer-state {
+  display: grid;
+  min-height: 100%;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #f6faf8;
+  text-align: center;
+}
+
+.viewer-state p {
+  max-width: 520px;
+  margin: 0;
+  color: #dce5df;
 }
 
 .approved-guidance-panel,
@@ -913,6 +1232,27 @@ label {
   font-weight: 800;
 }
 
+.checkbox-field {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  align-items: start;
+  gap: 4px 9px;
+  padding: 10px 0;
+}
+
+.checkbox-field input {
+  width: auto;
+  margin-top: 3px;
+}
+
+.checkbox-field small {
+  grid-column: 2;
+  color: #60716b;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 input,
 textarea,
 select {
@@ -993,6 +1333,9 @@ textarea {
   .today-dose,
   .low-stock-card,
   .leaflet-upload-form,
+  .ocr-preview-grid,
+  .leaflet-viewer-body,
+  .leaflet-viewer-toolbar,
   .select-with-badge,
   .review-grid,
   .detail-grid,
@@ -1027,6 +1370,34 @@ textarea {
   .preference-controls {
     width: 100%;
   }
+
+  .leaflet-viewer-backdrop {
+    padding: 0;
+  }
+
+  .leaflet-viewer-dialog {
+    border-radius: 0;
+  }
+
+  .leaflet-viewer-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .leaflet-viewer-thumbnails {
+    display: flex;
+    overflow-x: auto;
+    padding-right: 0;
+    padding-bottom: 4px;
+  }
+
+  .leaflet-viewer-thumbnails button {
+    min-width: 112px;
+  }
+
+  .leaflet-viewer-viewport {
+    min-height: 52vh;
+  }
 }
 
 :root[data-theme="dark"] {
@@ -1049,6 +1420,10 @@ textarea {
   color: #f4fbf7;
 }
 
+:root[data-theme="dark"] .selected-file-list strong {
+  color: #f4fbf7;
+}
+
 :root[data-theme="dark"] .eyebrow,
 :root[data-theme="dark"] .text-button,
 :root[data-theme="dark"] .restock-link {
@@ -1064,7 +1439,14 @@ textarea {
 :root[data-theme="dark"] .detail-panel,
 :root[data-theme="dark"] .form-panel,
 :root[data-theme="dark"] .detail-grid div,
+:root[data-theme="dark"] .leaflet-search-panel,
 :root[data-theme="dark"] .leaflet-row,
+:root[data-theme="dark"] .ocr-workspace,
+:root[data-theme="dark"] .ocr-preview img,
+:root[data-theme="dark"] .preview-placeholder,
+:root[data-theme="dark"] .selected-file-list,
+:root[data-theme="dark"] .leaflet-viewer-dialog,
+:root[data-theme="dark"] .leaflet-viewer-thumbnails button,
 :root[data-theme="dark"] .approved-guidance,
 :root[data-theme="dark"] .review-section,
 :root[data-theme="dark"] .review-item,
@@ -1078,11 +1460,20 @@ textarea {
 }
 
 :root[data-theme="dark"] .today-dose,
+:root[data-theme="dark"] .leaflet-search-panel,
 :root[data-theme="dark"] .leaflet-row,
+:root[data-theme="dark"] .ocr-workspace,
+:root[data-theme="dark"] .leaflet-viewer-dialog,
+:root[data-theme="dark"] .leaflet-viewer-thumbnails button,
 :root[data-theme="dark"] .approved-guidance,
 :root[data-theme="dark"] .guidance-claim-list li,
 :root[data-theme="dark"] .schedule-row {
   background: #1c2a25;
+}
+
+:root[data-theme="dark"] .leaflet-viewer-thumbnails button.is-active {
+  border-color: #7fd4bd;
+  box-shadow: 0 0 0 2px rgba(127, 212, 189, 0.18);
 }
 
 :root[data-theme="dark"] .low-stock-panel,
@@ -1096,6 +1487,7 @@ textarea {
 :root[data-theme="dark"] .safety-banner,
 :root[data-theme="dark"] .safety-strip,
 :root[data-theme="dark"] .leaflet-safety,
+:root[data-theme="dark"] .leaflet-viewer-safety,
 :root[data-theme="dark"] .review-safety,
 :root[data-theme="dark"] .reviewed-safety,
 :root[data-theme="dark"] .review-item.is-low-confidence {
@@ -1107,6 +1499,7 @@ textarea {
 :root[data-theme="dark"] .safety-banner strong,
 :root[data-theme="dark"] .safety-strip strong,
 :root[data-theme="dark"] .leaflet-safety strong,
+:root[data-theme="dark"] .leaflet-viewer-safety strong,
 :root[data-theme="dark"] .review-safety strong,
 :root[data-theme="dark"] .reviewed-safety strong {
   color: #fff5c8;
@@ -1169,7 +1562,10 @@ textarea {
 :root[data-theme="dark"] .detail-subtitle,
 :root[data-theme="dark"] .detail-grid span,
 :root[data-theme="dark"] .notes-panel p,
+:root[data-theme="dark"] .leaflet-search-panel p,
 :root[data-theme="dark"] .leaflet-row span,
+:root[data-theme="dark"] .leaflet-viewer-header span,
+:root[data-theme="dark"] .leaflet-viewer-toolbar label span,
 :root[data-theme="dark"] .approved-guidance-header span,
 :root[data-theme="dark"] .review-subtitle,
 :root[data-theme="dark"] .guidance-section p,

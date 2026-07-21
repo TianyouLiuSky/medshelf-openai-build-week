@@ -7,6 +7,7 @@ import {
   deleteSchedule as deleteScheduleRequest,
   deleteMedication,
   extractLeaflet,
+  extractLeafletFromBrowserOcr,
   getLatestLeafletExtraction,
   getRestockSuggestion,
   getTodayDashboard,
@@ -466,6 +467,36 @@ function MedicineDashboard({
     }
   }
 
+  async function handleUploadLeafletWithOcrText(file: File, sourceText: string) {
+    if (!selectedMedication) {
+      return;
+    }
+
+    setError("");
+    setIsLeafletUploading(true);
+
+    try {
+      const upload = await uploadLeaflet(selectedMedication.id, file);
+      const extraction = await extractLeafletFromBrowserOcr(upload.id, sourceText);
+      if (extraction.status === "failed") {
+        setError(extraction.error_message || t("Leaflet extraction failed."));
+        setSelectedLeafletExtraction(null);
+      } else if (extraction.status === "needs_review") {
+        setSelectedLeafletExtraction(extraction);
+      }
+      await loadLeafletsForMedication(selectedMedication.id);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : t("Could not upload leaflet.")
+      );
+      throw caughtError;
+    } finally {
+      setIsLeafletUploading(false);
+    }
+  }
+
   async function handleExtractLeaflet(upload: LeafletUpload) {
     setError("");
     setActiveLeafletExtractionId(upload.id);
@@ -742,6 +773,7 @@ function MedicineDashboard({
             onExtractLeaflet={handleExtractLeaflet}
             onReviewLeaflet={handleReviewLeaflet}
             onUploadLeaflet={handleUploadLeaflet}
+            onUploadLeafletWithOcrText={handleUploadLeafletWithOcrText}
           />
         )}
       </section>

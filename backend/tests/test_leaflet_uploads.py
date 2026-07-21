@@ -62,6 +62,60 @@ def test_leaflet_upload_stores_file_and_status(
     assert [item["id"] for item in list_response.json()] == [upload["id"]]
 
 
+def test_leaflet_file_endpoint_returns_stored_upload(
+    client: TestClient,
+) -> None:
+    medication = create_test_medication(client)
+    leaflet_bytes = b"Sample leaflet bytes for viewing."
+
+    upload_response = client.post(
+        f"/api/medications/{medication['id']}/leaflet",
+        content=leaflet_bytes,
+        headers={
+            "Content-Type": "text/plain",
+            "X-Leaflet-Filename": "sample-leaflet.txt",
+        },
+    )
+
+    assert upload_response.status_code == 201
+    upload = upload_response.json()
+
+    file_response = client.get(f"/api/leaflets/{upload['id']}/file")
+
+    assert file_response.status_code == 200
+    assert file_response.content == leaflet_bytes
+    assert file_response.headers["cache-control"] == "private, no-store"
+
+
+def test_leaflet_upload_accepts_broad_image_formats(client: TestClient) -> None:
+    medication = create_test_medication(client)
+    samples = [
+        ("leaflet.jpg", "image/jpeg"),
+        ("leaflet.png", "image/png"),
+        ("leaflet.webp", "image/webp"),
+        ("leaflet.bmp", "image/bmp"),
+        ("leaflet.tiff", "image/tiff"),
+        ("leaflet.heic", "image/heic"),
+        ("leaflet.heif", "image/heif"),
+        ("leaflet-pages.zip", "application/zip"),
+    ]
+
+    for filename, content_type in samples:
+        upload_response = client.post(
+            f"/api/medications/{medication['id']}/leaflet",
+            content=b"fake image bytes for upload validation",
+            headers={
+                "Content-Type": content_type,
+                "X-Leaflet-Filename": filename,
+            },
+        )
+
+        assert upload_response.status_code == 201
+        upload = upload_response.json()
+        assert upload["original_filename"] == filename
+        assert upload["content_type"] == content_type
+
+
 def test_leaflet_upload_rejects_missing_medication(client: TestClient) -> None:
     response = client.post(
         "/api/medications/999/leaflet",

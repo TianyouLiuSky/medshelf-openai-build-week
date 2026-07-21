@@ -1,4 +1,8 @@
+import { useEffect, useState } from "react";
+
 import ApprovedGuidancePanel from "./ApprovedGuidancePanel";
+import LeafletImageViewer from "./LeafletImageViewer";
+import LeafletSearchPanel from "./LeafletSearchPanel";
 import LeafletUploadPanel from "./LeafletUploadPanel";
 import LeafletReviewPanel from "./LeafletReviewPanel";
 import ScheduleForm from "./ScheduleForm";
@@ -43,12 +47,17 @@ interface MedicineDetailProps {
   onExtractLeaflet: (upload: LeafletUpload) => Promise<void>;
   onReviewLeaflet: (upload: LeafletUpload) => Promise<void>;
   onUploadLeaflet: (file: File) => Promise<void>;
+  onUploadLeafletWithOcrText: (file: File, sourceText: string) => Promise<void>;
 }
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function formatDose(medication: Medication, t: (key: string) => string): string {
   if (medication.dose_amount === null || !medication.dose_unit) {
+    if (!medication.is_routine) {
+      return t("As needed");
+    }
+
     return t("Not recorded");
   }
 
@@ -77,6 +86,20 @@ function formatEstimate(
   }
 
   return `${formatNumber(value)} ${unit}`;
+}
+
+function formatRoutineEstimate(
+  medication: Medication,
+  value: number | null,
+  unit: string,
+  formatNumber: (value: number) => string,
+  t: (key: string) => string
+): string {
+  if (!medication.is_routine) {
+    return t("Storage tracking only");
+  }
+
+  return formatEstimate(value, unit, formatNumber, t);
 }
 
 function stockBadge(medication: Medication, t: (key: string) => string) {
@@ -131,9 +154,16 @@ function MedicineDetail({
   onCloseLeafletReview,
   onExtractLeaflet,
   onReviewLeaflet,
-  onUploadLeaflet
+  onUploadLeaflet,
+  onUploadLeafletWithOcrText
 }: MedicineDetailProps) {
   const { formatNumber, t } = useI18n();
+  const [viewedLeafletUpload, setViewedLeafletUpload] =
+    useState<LeafletUpload | null>(null);
+
+  useEffect(() => {
+    setViewedLeafletUpload(null);
+  }, [medication?.id]);
 
   if (!medication) {
     return (
@@ -173,6 +203,12 @@ function MedicineDetail({
           <strong>{medication.strength || t("Not recorded")}</strong>
         </div>
         <div>
+          <span>{t("Schedule type")}</span>
+          <strong>
+            {medication.is_routine ? t("Routine") : t("Non-routine")}
+          </strong>
+        </div>
+        <div>
           <span>{t("Remaining")}</span>
           <strong>
             {medication.quantity_remaining} {medication.quantity_unit}
@@ -189,7 +225,8 @@ function MedicineDetail({
         <div>
           <span>{t("Daily usage estimate")}</span>
           <strong>
-            {formatEstimate(
+            {formatRoutineEstimate(
+              medication,
               medication.daily_usage_estimate,
               medication.quantity_unit,
               formatNumber,
@@ -200,7 +237,8 @@ function MedicineDetail({
         <div>
           <span>{t("Days remaining")}</span>
           <strong>
-            {formatEstimate(
+            {formatRoutineEstimate(
+              medication,
               medication.days_remaining_estimate,
               t("days"),
               formatNumber,
@@ -255,6 +293,8 @@ function MedicineDetail({
         isLoading={isLeafletGuidanceLoading}
       />
 
+      <LeafletSearchPanel medication={medication} />
+
       <LeafletUploadPanel
         uploads={leafletUploads}
         activeExtractionId={activeLeafletExtractionId}
@@ -264,6 +304,14 @@ function MedicineDetail({
         onExtract={onExtractLeaflet}
         onReview={onReviewLeaflet}
         onUpload={onUploadLeaflet}
+        onUploadWithOcrText={onUploadLeafletWithOcrText}
+        onView={setViewedLeafletUpload}
+      />
+
+      <LeafletImageViewer
+        medication={medication}
+        upload={viewedLeafletUpload}
+        onClose={() => setViewedLeafletUpload(null)}
       />
 
       <LeafletReviewPanel
@@ -278,11 +326,22 @@ function MedicineDetail({
         <div className="section-heading">
           <h3>{t("Schedules")}</h3>
           <span className="muted-label">
-            {schedules.length} {t("active")}
+            {medication.is_routine
+              ? `${schedules.length} ${t("active")}`
+              : t("storage only")}
           </span>
         </div>
 
-        {schedules.length === 0 ? (
+        {!medication.is_routine ? (
+          <div className="empty-state compact-empty">
+            <h3>{t("Non-routine medicine")}</h3>
+            <p>
+              {t(
+                "Storage tracking is enabled without a repeating dose schedule."
+              )}
+            </p>
+          </div>
+        ) : schedules.length === 0 ? (
           <div className="empty-state compact-empty">
             <h3>{t("No schedule yet")}</h3>
             <p>{t("Add times to generate doses on the daily dashboard.")}</p>
@@ -308,7 +367,9 @@ function MedicineDetail({
           </div>
         )}
 
-        <ScheduleForm isSaving={isScheduleSaving} onSubmit={onAddSchedule} />
+        {medication.is_routine && (
+          <ScheduleForm isSaving={isScheduleSaving} onSubmit={onAddSchedule} />
+        )}
       </div>
 
       <div className="detail-actions">

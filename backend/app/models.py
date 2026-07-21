@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS medications (
     active_ingredients TEXT NOT NULL DEFAULT '',
     form TEXT NOT NULL DEFAULT '',
     strength TEXT NOT NULL DEFAULT '',
+    is_routine INTEGER NOT NULL DEFAULT 1,
     quantity_remaining REAL NOT NULL DEFAULT 0,
     quantity_unit TEXT NOT NULL DEFAULT 'units',
     dose_amount REAL,
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS medications (
     notes TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
+    CHECK (is_routine IN (0, 1)),
     CHECK (quantity_remaining >= 0),
     CHECK (dose_amount IS NULL OR dose_amount >= 0),
     CHECK (low_stock_threshold IS NULL OR low_stock_threshold >= 0)
@@ -118,6 +120,7 @@ MEDICATION_COLUMNS = (
     "active_ingredients",
     "form",
     "strength",
+    "is_routine",
     "quantity_remaining",
     "quantity_unit",
     "dose_amount",

@@ -64,7 +64,7 @@ class Settings:
             "OPENAI_API_BASE_URL", "https://api.openai.com/v1"
         ).strip()
         self.openai_extraction_model = getenv(
-            "OPENAI_EXTRACTION_MODEL", "gpt-4o-mini"
+            "OPENAI_EXTRACTION_MODEL", "gpt-5.6"
         ).strip()
         self.frontend_dist_dir = getenv("FRONTEND_DIST_DIR", "./frontend/dist").strip()
 

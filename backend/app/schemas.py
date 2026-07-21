@@ -9,6 +9,7 @@ class MedicationBase(BaseModel):
     active_ingredients: str = Field("", max_length=240)
     form: str = Field("", max_length=80)
     strength: str = Field("", max_length=80)
+    is_routine: bool = True
     quantity_remaining: float = Field(0, ge=0)
     quantity_unit: str = Field("units", min_length=1, max_length=40)
     dose_amount: Optional[float] = Field(None, ge=0)
@@ -53,6 +54,7 @@ class MedicationUpdate(BaseModel):
     active_ingredients: Optional[str] = Field(None, max_length=240)
     form: Optional[str] = Field(None, max_length=80)
     strength: Optional[str] = Field(None, max_length=80)
+    is_routine: Optional[bool] = None
     quantity_remaining: Optional[float] = Field(None, ge=0)
     quantity_unit: Optional[str] = Field(None, min_length=1, max_length=40)
     dose_amount: Optional[float] = Field(None, ge=0)
@@ -226,7 +228,7 @@ class RestockSuggestionRead(BaseModel):
 
 Confidence = Literal["high", "medium", "low"]
 WarningSeverity = Literal["info", "caution", "urgent"]
-ExtractionProvider = Literal["mock", "local_ocr", "openai"]
+ExtractionProvider = Literal["browser_ocr", "mock", "local_ocr", "openai"]
 
 LeafletExtractionStatus = Literal[
     "uploaded",
@@ -407,6 +409,14 @@ class LeafletGuidanceRead(BaseModel):
     guidance: LeafletApprovedGuidance
     created_at: datetime
     updated_at: datetime
+
+
+class LeafletBrowserOcrExtractRequest(BaseModel):
+    source_text: str = Field(..., min_length=1, max_length=60000)
+
+    @validator("source_text", pre=True)
+    def normalize_source_text(cls, value: object) -> str:
+        return str(value or "").strip()
 
 
 class DemoSeedResponse(BaseModel):

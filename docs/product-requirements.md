@@ -47,7 +47,9 @@ Needs translation and simplification for medicine purchased in a language they d
 - Accept image uploads for MVP.
 - Accept PDF uploads as stretch.
 - Store the raw uploaded file locally during development.
-- Send leaflet content to the AI extraction pipeline.
+- Run no-paid browser OCR for images where possible.
+- Let the user edit OCR text before sending leaflet content to the extraction
+  pipeline.
 
 ### AI Review
 
@@ -77,4 +79,3 @@ Needs translation and simplification for medicine purchased in a language they d
 - The app visibly distinguishes source-grounded guidance from user-entered plans.
 - Low-stock behavior is visible in the dashboard.
 - README explains setup, architecture, and OpenAI usage.
-

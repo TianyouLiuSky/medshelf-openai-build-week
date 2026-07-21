@@ -26,3 +26,4 @@ build/
 # Generated media
 uploads/
 tmp/
+*.traineddata

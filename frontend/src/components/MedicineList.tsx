@@ -13,6 +13,10 @@ function formatDaysRemaining(
   formatNumber: (value: number) => string,
   t: (key: string) => string
 ): string {
+  if (!medication.is_routine) {
+    return t("Storage tracking only");
+  }
+
   if (medication.days_remaining_estimate === null) {
     return t("Days remaining unavailable");
   }

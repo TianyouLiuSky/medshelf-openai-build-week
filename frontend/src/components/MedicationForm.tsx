@@ -15,6 +15,7 @@ interface FormState {
   active_ingredients: string;
   form: string;
   strength: string;
+  is_routine: boolean;
   quantity_remaining: string;
   quantity_unit: string;
   dose_amount: string;
@@ -28,6 +29,7 @@ const emptyForm: FormState = {
   active_ingredients: "",
   form: "",
   strength: "",
+  is_routine: true,
   quantity_remaining: "0",
   quantity_unit: "tablets",
   dose_amount: "",
@@ -46,6 +48,7 @@ function toFormState(medication?: Medication): FormState {
     active_ingredients: medication.active_ingredients,
     form: medication.form,
     strength: medication.strength,
+    is_routine: medication.is_routine,
     quantity_remaining: String(medication.quantity_remaining),
     quantity_unit: medication.quantity_unit,
     dose_amount:
@@ -79,7 +82,7 @@ function MedicationForm({
   const [form, setForm] = useState<FormState>(initialState);
   const [formError, setFormError] = useState("");
 
-  function updateField(field: keyof FormState, value: string) {
+  function updateField<K extends keyof FormState>(field: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
@@ -115,6 +118,7 @@ function MedicationForm({
       active_ingredients: form.active_ingredients.trim(),
       form: form.form.trim(),
       strength: form.strength.trim(),
+      is_routine: form.is_routine,
       quantity_remaining: quantityRemaining,
       quantity_unit: form.quantity_unit.trim(),
       dose_amount: doseAmount,
@@ -207,6 +211,20 @@ function MedicationForm({
             onChange={(event) => updateField("dose_unit", event.target.value)}
             placeholder={t("tablet")}
           />
+        </label>
+
+        <label className="checkbox-field">
+          <input
+            checked={!form.is_routine}
+            type="checkbox"
+            onChange={(event) =>
+              updateField("is_routine", !event.target.checked)
+            }
+          />
+          <span>{t("Non-routine medicine")}</span>
+          <small>
+            {t("Track storage without creating repeating schedule reminders.")}
+          </small>
         </label>
 
         <label>

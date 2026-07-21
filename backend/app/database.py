@@ -35,6 +35,16 @@ def get_connection(database_url: str) -> sqlite3.Connection:
     return connection
 
 
+def migrate_medications_table(connection: sqlite3.Connection) -> None:
+    columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(medications)")
+    }
+    if "is_routine" not in columns:
+        connection.execute(
+            "ALTER TABLE medications ADD COLUMN is_routine INTEGER NOT NULL DEFAULT 1"
+        )
+
+
 def init_db(database_url: str) -> None:
     database_path = sqlite_path_from_url(database_url)
     if database_path != ":memory:":
@@ -42,6 +52,7 @@ def init_db(database_url: str) -> None:
 
     with get_connection(database_url) as connection:
         connection.execute(MEDICATIONS_TABLE_SQL)
+        migrate_medications_table(connection)
         connection.execute(SCHEDULES_TABLE_SQL)
         connection.execute(DOSE_LOGS_TABLE_SQL)
         connection.execute(LEAFLET_UPLOADS_TABLE_SQL)

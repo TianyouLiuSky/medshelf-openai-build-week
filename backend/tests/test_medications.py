@@ -43,6 +43,7 @@ def test_medication_crud(client: TestClient) -> None:
     created = create_response.json()
     assert created["id"] > 0
     assert created["name"] == "Test Medicine"
+    assert created["is_routine"] is True
     assert created["is_low_stock"] is False
 
     medication_id = created["id"]
@@ -52,10 +53,11 @@ def test_medication_crud(client: TestClient) -> None:
 
     update_response = client.patch(
         f"/api/medications/{medication_id}",
-        json={"quantity_remaining": 4},
+        json={"quantity_remaining": 4, "is_routine": False},
     )
     assert update_response.status_code == 200
     assert update_response.json()["is_low_stock"] is True
+    assert update_response.json()["is_routine"] is False
 
     list_response = client.get("/api/medications")
     assert list_response.status_code == 200

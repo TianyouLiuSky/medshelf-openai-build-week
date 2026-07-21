@@ -4,6 +4,7 @@ export interface Medication {
   active_ingredients: string;
   form: string;
   strength: string;
+  is_routine: boolean;
   quantity_remaining: number;
   quantity_unit: string;
   dose_amount: number | null;
@@ -22,6 +23,7 @@ export interface MedicationPayload {
   active_ingredients: string;
   form: string;
   strength: string;
+  is_routine: boolean;
   quantity_remaining: number;
   quantity_unit: string;
   dose_amount: number | null;
@@ -113,7 +115,11 @@ export interface LeafletUpload {
   updated_at: string;
 }
 
-export type LeafletExtractionProvider = "mock" | "local_ocr" | "openai";
+export type LeafletExtractionProvider =
+  | "browser_ocr"
+  | "mock"
+  | "local_ocr"
+  | "openai";
 export type LeafletConfidence = "high" | "medium" | "low";
 export type LeafletWarningSeverity = "info" | "caution" | "urgent";
 

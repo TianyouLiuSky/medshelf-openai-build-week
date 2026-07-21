@@ -10,19 +10,23 @@ interface LowStockPanelProps {
 }
 
 function formatDaysRemaining(
-  value: number | null,
+  medication: Medication,
   formatNumber: (value: number) => string,
   t: (key: string) => string
 ): string {
-  if (value === null) {
+  if (!medication.is_routine) {
+    return t("Storage tracking only");
+  }
+
+  if (medication.days_remaining_estimate === null) {
     return t("Estimate unavailable");
   }
 
-  if (value === 0) {
+  if (medication.days_remaining_estimate === 0) {
     return `0 ${t("days")}`;
   }
 
-  return `${formatNumber(value)} ${t("days")}`;
+  return `${formatNumber(medication.days_remaining_estimate)} ${t("days")}`;
 }
 
 function LowStockPanel({
@@ -74,7 +78,7 @@ function LowStockPanel({
                   </p>
                   <span>
                     {formatDaysRemaining(
-                      medication.days_remaining_estimate,
+                      medication,
                       formatNumber,
                       t
                     )}

@@ -1,6 +1,7 @@
 {
   "name": "medshelf",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "setup": "sh scripts/setup.sh",
     "dev": "sh scripts/dev.sh",

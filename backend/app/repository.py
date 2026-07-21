@@ -189,6 +189,7 @@ def now_iso() -> str:
 
 def row_to_medication(row: Row) -> dict[str, Any]:
     medication = {column: row[column] for column in MEDICATION_COLUMNS}
+    medication["is_routine"] = bool(medication["is_routine"])
     threshold = medication["low_stock_threshold"]
     medication["is_low_stock"] = (
         threshold is not None and medication["quantity_remaining"] <= threshold
@@ -322,6 +323,11 @@ def estimate_days_remaining(
 def apply_inventory_estimates(
     medication: dict[str, Any], schedules: list[dict[str, Any]]
 ) -> dict[str, Any]:
+    if not medication["is_routine"]:
+        medication["daily_usage_estimate"] = None
+        medication["days_remaining_estimate"] = None
+        return medication
+
     medication["daily_usage_estimate"] = estimate_average_daily_usage(
         medication, schedules
     )
@@ -354,8 +360,8 @@ def list_medications(database_url: str) -> list[dict[str, Any]]:
         rows = connection.execute(
             """
             SELECT id, name, active_ingredients, form, strength,
-                   quantity_remaining, quantity_unit, dose_amount, dose_unit,
-                   low_stock_threshold, notes, created_at, updated_at
+                   is_routine, quantity_remaining, quantity_unit, dose_amount,
+                   dose_unit, low_stock_threshold, notes, created_at, updated_at
             FROM medications
             ORDER BY name COLLATE NOCASE ASC, id ASC
             """
@@ -375,8 +381,8 @@ def get_medication(database_url: str, medication_id: int) -> dict[str, Any] | No
         row = connection.execute(
             """
             SELECT id, name, active_ingredients, form, strength,
-                   quantity_remaining, quantity_unit, dose_amount, dose_unit,
-                   low_stock_threshold, notes, created_at, updated_at
+                   is_routine, quantity_remaining, quantity_unit, dose_amount,
+                   dose_unit, low_stock_threshold, notes, created_at, updated_at
             FROM medications
             WHERE id = ?
             """,
@@ -402,17 +408,18 @@ def create_medication(
         cursor = connection.execute(
             """
             INSERT INTO medications (
-                name, active_ingredients, form, strength, quantity_remaining,
-                quantity_unit, dose_amount, dose_unit, low_stock_threshold,
-                notes, created_at, updated_at
+                name, active_ingredients, form, strength, is_routine,
+                quantity_remaining, quantity_unit, dose_amount, dose_unit,
+                low_stock_threshold, notes, created_at, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 data["name"],
                 data["active_ingredients"],
                 data["form"],
                 data["strength"],
+                data["is_routine"],
                 data["quantity_remaining"],
                 data["quantity_unit"],
                 data["dose_amount"],
